@@ -1,0 +1,151 @@
+<div id="boxPopup" style="display: block;">
+			<div class="leftBox">
+				<div class="navBar top">
+					<div class="rows left">
+						<div class="li close">
+							<i></i> <span>Close</span>
+						</div>
+					</div>
+					<div class="rows right">
+						<div class="li link">
+							<i></i> <span>Links</span> <div class="tabOn"><input type="text" value="https://soundcloud.com/stream" /></div>
+						</div>
+						<div class="li embed">
+							<i></i> <span>Embed</span> <div class="tabOn"><textarea type="text"><iframe width="410" height="100" src="http://mp3.zing.vn/embed/song/IWABZ9OD?autostart=false" frameborder="0" allowfullscreen="true"></iframe></textarea></div>
+						</div>
+						<div class="li download _tt-we n" title="download this file">
+							<i></i> <span>Download</span>
+						</div>
+					</div>
+				</div>
+				<div class="mainBox">
+					<div class="content">
+						<!-- 
+						type: image;
+						<img class="ts" src="http://i.huffpost.com/gen/1370263/thumbs/o-JACK-THE-RIPPER-facebook.jpg">
+						-->
+						<!--
+						type: video;
+						-->
+						<video id="xxxxx" class="gplayer-skin v-simple video ts" width="630" height="360"></video>
+					</div>
+				</div>
+				<div class="navBar bottom">
+					<div class="rows left"></div>
+					<div class="rows center">
+						<div class="li info">
+							<div class="button prev"><i class="fa fa-chevron-left"></i></div>
+							<div class="button text">
+								<span>1 / 2</span>
+								<div class="list">
+									<div class="bt prev"> <i></i> </div>
+									<div class="ml">
+										<div class="ts" style="background-image: url(http://i.huffpost.com/gen/1370263/thumbs/o-JACK-THE-RIPPER-facebook.jpg);"></div>
+										<div class="ts" style="background-image: url(http://i.huffpost.com/gen/1370263/thumbs/o-JACK-THE-RIPPER-facebook.jpg);"></div>
+										<div class="ts active" style="background-image: url(http://i.huffpost.com/gen/1370263/thumbs/o-JACK-THE-RIPPER-facebook.jpg);"></div>
+									</div>
+									<div class="bt next"> <i></i> </div>
+								</div>
+							</div>
+							<div class="button next"><i class="fa fa-chevron-right"></i></div>
+						</div>
+					</div>
+					<div class="rows right">
+						<div class="li views _tt-we s" title="<?php print $_language->text('total_views', 'strtolower'); ?>">
+							<i></i> <span>311.135</span>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="rightBox"></div>
+		</div>
+		<script type="text/javascript">
+		$(document).ready(function(){
+			$("body").css('overflow-y', 'hidden');
+			var setHeightMainbox = function () {
+				var leftBox = $("#boxPopup > .leftBox");
+				var mainBox = leftBox.children(".mainBox");
+				var navBar = leftBox.children(".navBar");
+				mainBox.animate({
+					'marginTop': (leftBox.height() - (navBar.innerHeight() * 2)) / 2 / 2 + 'px',
+					'height': (leftBox.height() - (navBar.innerHeight() * 2)) / 2 + 'px'
+				}, 500, function () {
+					mainBox.animate({
+						'marginTop': 0,
+						'height': (leftBox.height() - (navBar.innerHeight() * 2)) / 1 + 'px'
+					}, 500);
+				});
+				navBar.find(".rows.center > .li.info > .button.text > .list > .ml > .ts").each(function (i) {
+					$(this).animate({
+						'left': i * 65 + 'px'
+					});
+				});
+			};
+			setHeightMainbox();
+			$(window).bind('resizeEnd', setHeightMainbox);
+			var options = {
+				'src': [
+					{
+						'text': 'HD',
+						'mime': 'video/mp4',
+						'source': 'http://localhost/giccos/videos/raw/518393a80caec4dffdc63795e9d1043e'
+					},
+					{
+						'default': true,
+						'text': 'VGA',
+						'mime': 'video/mp4',
+						'source': 'http://localhost/giccos/videos/raw/d3cff698019e21648ce2373673c419f0'
+					},
+					{
+						'text': 'QVGA',
+						'mime': 'video/mp4',
+						'source': 'http://localhost/giccos/videos/raw/d8702a50ec2b7d93b522caa50f0f4bdf'
+					}
+				],
+				'controls': true,
+				'autoplay': false,
+				'preload': 'auto',
+				'poster': 'http://i.huffpost.com/gen/1370263/thumbs/o-JACK-THE-RIPPER-facebook.jpg',
+				'plugins': {
+					/*
+					'information': {
+						'active': true,
+						'auto': false,
+						'info': {
+							'name': 'sdf asdf asd fasd sd',
+							'share': {
+								'link': 'x'
+							}
+						}
+					},
+					*/
+					'brandbox': {
+						'title': {
+							'text': 'Dan ong cung muon khoc',
+							'link': 'x'
+						},
+						'logo': {
+							'image': 'https://yt3.ggpht.com/-uqgQQOw-8lk/AAAAAAAAAAI/AAAAAAAAAAA/78wjlCTvfxU/s88-c-k-no/photo.jpg',
+							'link': 'http://localhost/giccos/wall/lamhieu'
+						},
+						'author': {
+							'name': 'Lam Hieu',
+							'tag': 'lamhieu',
+							'link': 'http://localhost/giccos/wall/lamhieu'
+						}
+					},
+					'loop': {
+						'active': true
+					},
+					'progresstips': {
+						'active': true
+					},
+					// 'pointtag': '<?php print $_tool->hash('encode', '0d54f66e66fb7b8c4a2569216808e06f', $_parameter->get('hash_videos_pointtag_check')); ?>'
+					'pointtag': '0d54f66e66fb7b8c4a2569216808e06f'
+				}
+			};
+			setTimeout(function(){
+				var demo_mediaPlayerThis = gplayer("#xxxxx", options);
+			});
+		});
+		</script>
