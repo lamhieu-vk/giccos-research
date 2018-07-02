@@ -1,0 +1,79 @@
+NOTE:
+	ERROR:
+	# Database:
+		001: Do not connect to server.
+		002: Do not connect to database selected.
+		003: There was a problem disconnecting from the database.
+	# Language:
+		001: Language values is not found on server.
+		002: Language code is not found on server.
+	# User:
+		000: Traffic incidents.
+		001: Username is invalid.
+		002: Password is invalid.
+		003: Username is not found.
+		004: Password is wrong.
+		005: Remember return is invalid.
+		006: Username is already exists.
+		007: Email is already exists.
+		008: Repeat password is not coincide.
+		009: Phone is invalid.
+		010: Name is invalid.
+		011: Gender is invalid.
+		012: Birthday is invalid.
+		013: Agree return is invalid.
+		014: Agree is not check.
+		015: Email is invalid.
+		016: Incomplete information.
+		017: Action have been implemented.
+	# Feeds:
+		001: Status id is invalid.
+		002: Action is invalid.
+		003: User is not found.
+		004: Status is not found.
+		005: Action have been implemented.
+		006: Action is not allowed.
+		007: Error in the implementation process.
+		008: Action is being carried out.
+		009: Comment id is invalid.
+		010: Editor missing content.
+		011: Media upload missing info.
+		012: Not authorized to perform.
+	INFO:
+	# Maps:
+		Places:
+			Key : (structure):
+				md5($key.'::'.$location);
+	# User:
+		Key:
+			Password: (structure):
+				md5($key.'::'.$register.'::'.$username);
+		Gender:
+			1 = male;
+			2 = female;
+		Relationship:
+			1 = single;
+			2 = open relationship;
+			3 = dating;
+			4 = married;
+			5 = divorced;
+			6 = widow;
+	# Status:
+		Private:
+			1 = only me;
+			2 = friends;
+			3 = all friends;
+			4 = public;
+	# Photos:
+		Crop:
+			original: w=n;
+			large: w=1024;
+			medium: w=512;
+			small: w=256;
+	QUERY: 
+	# Feeds:
+		Comment:
+			Statistic:
+				From:
+					1 = only comment;
+					2 = all comment in status;
