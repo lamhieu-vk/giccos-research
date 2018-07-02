@@ -1,0 +1,198 @@
+<!--<div id="ViewerPopup" style="display: none;"> 
+			<div class="wrapFilter"></div> 
+			<div class="boxContent">
+				<div class="header"><span>Photos Storage</span><i close></i></div> 
+				<div class="body"> 
+					<div class="nav">
+						<div class="list">
+							<div class="rows active" type="cache"><span>Cache</span></div>
+							<div class="rows" type="sync"><span>Sync</span></div>
+						</div>
+						<div class="arrow" arrow="status"></div>
+					</div>
+					<div class="data">
+						<div class="grid">
+							<?php
+							// print urldecode("http%3A%2F%2Fporn.im.71aa2900.764335.x.xvideos.com%2Fvideos%2Fflv%2F0%2Fe%2Fa%2Fxvideos.com_0ead655f4e1bf7bab359de0ae3239bbb.flv%3Fe%3D1417169102%26ri%3D1024%26rs%3D85%26h%3D935caa1c5dbf35f35eb414a54e3ec3e6");
+							for ($i = 1; $i <= 10; $i++) { 
+							?>
+							<div class="rows cr-pointer" style="background-image: url(https://fbcdn-sphotos-g-a.akamaihd.net/hphotos-ak-xaf1/v/t1.0-9/10172622_296483747210253_4821970697995268709_n.jpg?oh=22c2c6469af3476fb25a47fa04dbc12e&oe=54D3E54D&__gda__=1426575100_d5fc563a8d81c0de9e322c63dbcbecd2)">
+								<div class="nav time">
+									<div class="create"><i></i><span>ss days ago</span></div>
+									<div class="close"><i></i><span>xx days ago</span></div>
+								</div>
+							</div>
+							<?php
+							}
+							?>
+						</div>
+					</div>
+				</div> 
+				<div class="footer"> <div class="copyright"> <span> <?php print $_parameter->get('PhotosEditorPopup_footer_text'); ?> </span> </div> </div>
+			</div> 
+		</div>-->
+		<!--<div id="boxPopup" style="display: block;">
+			<div class="leftBox">
+				<div class="navBar">
+					<div class="rowsLeft">
+						<div class="li close">
+							<i class="fa fa-times"></i>
+							<span>Close</span>
+						</div>
+						<div class="li view">
+							<i class="fa fa-eye"></i>
+							<span>12.313.213</span>
+						</div>
+					</div>
+					<div class="rowsCenter">
+						<div class="li info">
+							<div class="rows beforeButton"><i class="fa fa-chevron-left"></i></div>
+							<div class="rows nowButton"><span>1 / 2</span></div>
+							<div class="rows afterButton"><i class="fa fa-chevron-right"></i></div>
+						</div>
+					</div>
+					<div class="rowsRight">
+						<div class="li link" style="display: none;">
+							<i class="fa fa-external-link"></i>
+							<span>Links</span>
+							<div class="tabOn"><input type="text" value="https://soundcloud.com/stream" /></div>
+						</div>
+						<div class="li embed">
+							<i class="fa fa-code"></i>
+							<span>Embed</span>
+							<div class="tabOn"><textarea type="text"><iframe width="410" height="100" src="http://mp3.zing.vn/embed/song/IWABZ9OD?autostart=false" frameborder="0" allowfullscreen="true"></iframe></textarea></div>
+						</div>
+						<div class="li download">
+							<i class="fa fa-download"></i>
+							<span>Download</span>
+						</div>
+					</div>
+				</div>
+				<div class="mainBox">
+					<div class="content">
+						<img src="http://i.huffpost.com/gen/1370263/thumbs/o-JACK-THE-RIPPER-facebook.jpg">
+					</div>
+				</div>
+			</div>
+			<div class="rightBox">
+					<div class="status inFeeds" status="{}" style="display: block;">
+						<div class="header">
+							<div class="cover">
+								<div class="wrap"></div>
+								<div class="img" style="background-image: url(https://scontent-b-sjc.xx.fbcdn.net/hphotos-xpf1/v/t1.0-9/s720x720/10482657_271798713012090_1910357460892337580_n.jpg?oh=f7b9e068f11caee8cd71eb8c9411b807&amp;oe=54C70F72)">
+									<img class="img" src="https://scontent-b-sjc.xx.fbcdn.net/hphotos-xpf1/v/t1.0-9/s720x720/10482657_271798713012090_1910357460892337580_n.jpg?oh=f7b9e068f11caee8cd71eb8c9411b807&amp;oe=54C70F72">
+								</div>
+							</div>
+							<div class="avatar">
+								<a href="http://localhost/giccos/user/lamhieu">
+									<img class="img" src="https://fbcdn-sphotos-e-a.akamaihd.net/hphotos-ak-xpf1/v/t1.0-9/10628199_299064943618800_8607881058069194381_n.jpg?oh=fe52d8d7ea154e01ff9b1bbc3a43da6c&amp;oe=54EAF64C&amp;__gda__=1421254438_b3f99a87388c7c680d6faae9c3805392">
+								</a>
+							</div>
+							<div class="user">
+								<div class="name cr-pointer">
+									<a href="http://localhost/giccos/user/lamhieu">
+										<span>Lam Hieu</span>
+									</a>
+								</div>
+								<div class="tag cr-pointer">
+									<a href="http://localhost/giccos/user/lamhieu">
+										<span>lamhieu</span>
+									</a>
+								</div>
+							</div>
+							<div class="info">
+								<div class="time nowrap _tt s cr-pointer" time="{&quot;stamp&quot;:&quot;1414223453&quot;}" title="Posted at 14:10, 25/10">
+									<i class="fa fa-clock-o"></i>
+									<span time-show="">2 days</span>
+								</div>
+								<div class="private nowrap _tt s cr-pointer" private="{&quot;stamp&quot;:&quot;1&quot;}" tooltip="Share only me">
+									<i class="fa fa-share-alt"></i>
+									<span private-show="">Only me</span>
+								</div>
+							</div>
+						</div>
+						<div class="body">
+							<div class="text">
+								<span>Oh my god :D</span>
+							</div>
+						</div>
+						<div class="footer">
+							<div class="info">
+								<div class="action">
+								<div class="favorite">
+									<span status-action-favorite="" favorite="false">Favorite</span>
+								</div>
+							<div class="share">
+								<span status-action-share="">Share</span>
+							</div>
+							<div class="invite">
+								<span status-action-invite="">Invite</span>
+							</div>
+								</div>
+								<div class="statistic">
+									<div class="favorite">
+										<i class="fa fa-heart"></i>
+										<span status-statistic-favorite="">0</span>
+									</div>
+									<div class="share">
+										<i class="fa fa-share"></i>
+										<span status-statistic-share="">0</span>
+									</div>
+									<div class="invite">
+										<i class="fa fa-envelope"></i>
+										<span status-statistic-invite="">0</span>
+									</div>
+								</div>
+							</div>
+							<div class="comment">
+								<div class="type" status-comment-type="">
+							<textarea type="text" placeholder="Type a comment..." status-action-comment="" handing="false"></textarea>
+								</div>
+							<div class="statistic">
+								<div class="info">
+									<i class="icon fa fa-comment"></i>
+									<span class="number" status-statistic-comment="">1</span>
+									<span class="text">comment(s)</span>
+								</div>
+							</div>
+								<div class="content" status-comment-content="">
+									<div class="lines" status-comment-lines="" comment="{&quot;id&quot;:&quot;3&quot;}">
+										<div class="bL">
+											<a class="avatar" href="http://localhost/giccos/user/lamhieu">
+												<img class="img" src="https://fbcdn-sphotos-e-a.akamaihd.net/hphotos-ak-xpf1/v/t1.0-9/10628199_299064943618800_8607881058069194381_n.jpg?oh=fe52d8d7ea154e01ff9b1bbc3a43da6c&amp;oe=54EAF64C&amp;__gda__=1421254438_b3f99a87388c7c680d6faae9c3805392">
+											</a>
+										</div>
+										<div class="bR">
+											<div class="i"></div>
+											<div class="header">
+												<div class="nowrap name">
+													<i class="fa i-user _tt s" title="lamhieu"></i>
+													<span><a href="http://localhost/giccos/user/lamhieu">Lam Hieu</a></span>
+												</div>
+												<div class="nowrap time" time="{&quot;stamp&quot;:&quot;1414398614&quot;}">
+													<i class="fa fa-clock-o _tt s" title="15:10, 27/10"></i>
+													<span time-show="">36 minutes</span>
+												</div>
+											</div>
+											<div class="body">
+												<span>This is comment<br</span>
+											</div>
+											<div class="footer">
+												<div class="favorite">
+													<i class="fa fa-heart _tt s" status-comment-action-favorite="" favorite="false" title="Favorite"></i>
+													<span status-comment-statistic-favorite="">0</span>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+			</div>
+		</div>
+		<script type="text/javascript">
+		$(document).ready(function(){
+			$("#boxPopup .status.inFeeds").barScroll({height: 'auto', size: '5px', railOpacity: 0.5});
+		});
+		</script>-->
