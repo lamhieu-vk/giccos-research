@@ -1,0 +1,1 @@
+var image_stream_ready = function () {};
