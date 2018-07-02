@@ -1,0 +1,3818 @@
+<?php
+@define("6246d859de19710432b4faff46731ff2f1f57d940c040aa7bd165de6a3b769aa", true);
+require_once ("source/config.php");
+if (isset($g_client['token']['ajax'], $_SERVER['HTTP_TOKEN'], $_SERVER['HTTP_X_REQUESTED_WITH'], $_SERVER['HTTP_REFERER'], $_SERVER['HTTP_HOST']) && $_SERVER['HTTP_TOKEN'] == $g_client['token']['ajax'] && $_SERVER['HTTP_X_REQUESTED_WITH'] == "XMLHttpRequest" && $_tool->valueCheck("referer", $_SERVER['HTTP_REFERER']) && $_SERVER['HTTP_HOST'] == $_tool->links("::host")) {
+	if (isset($_SERVER['HTTP_RANDKEY'])) {
+		setcookie('gXHR_'.$_SERVER['HTTP_RANDKEY'], null, $_tool->timeNow() - 31536000, $_parameter->get('cookie.host.path'), $g_client['http']['secure'], false);
+		if (!isset($g_client['token']['action']['key']['cookie']) || !isset($_SERVER['HTTP_RANDKEY']) || $g_client['token']['action']['key']['cookie'] != $_COOKIE['gXHR_'.$_SERVER['HTTP_RANDKEY']]) {
+			die(print json_encode(array("return" => false, "reason" => "")));
+		}
+	}else {
+		die(print json_encode(array("return" => false, "reason" => "")));
+	}
+	$_client->logsAjax();
+	if (isset($_REQUEST['robot']) && is_string($_REQUEST['robot'])) $robotRequest = $_REQUEST['robot']; else $robotRequest = null;
+	if (isset($_REQUEST['port']) && is_string($_REQUEST['port'])) $port = $_REQUEST['port']; else $port = null;
+	if (isset($_REQUEST['token']) && is_string($_REQUEST['token'])) $token = $_REQUEST['token']; else $token = null;
+	if (isset($_REQUEST['type']) && is_string($_REQUEST['type'])) $type = $_REQUEST['type']; else $type = null;
+	if (isset($_REQUEST['action']) && is_string($_REQUEST['action'])) $action = $_REQUEST['action']; else $action = null;
+	if (isset($_REQUEST[$g_client['token']['action']['key']['obj']]) && is_array($_REQUEST[$g_client['token']['action']['key']['obj']])) $ObjRequest = $_REQUEST[$g_client['token']['action']['key']['obj']]; else $ObjRequest = null;
+	foreach ($_REQUEST as $requestLabel => $requestValue) {
+		if (!in_array($requestLabel, [$g_client['token']['action']['key']['obj'], "robot", "port", "token", "type", "action"])) {
+			$ObjRequest[$requestLabel] = $requestValue;
+		}
+	}
+	if ($type == null || $action == null) {
+		// die(print json_encode(array("return" => false, "reason" => "")));
+	}
+	if ($ObjRequest == null) {
+		// die(print json_encode(array("return" => false, "reason" => "")));
+	}
+	if ($port == "accounts" && $token == $g_client['token']['action']['accounts']) {
+		if ($type == "login") {
+			if (isset($ObjRequest['username']) && is_string($ObjRequest['username'])) $username = $ObjRequest['username']; else $username = null;
+			if (isset($ObjRequest['password']) && is_string($ObjRequest['password'])) $password = $ObjRequest['password']; else $password = null;
+			if (isset($ObjRequest['remember']) && is_string($ObjRequest['remember'])) $remember = $ObjRequest['remember']; else $remember = null;
+			if ($username == null || $password == null) {
+				die(print json_encode(array("return" => false, "reason" => "a#action.p:accounts.o:001")));
+			}
+			if (isset($remember) && ($remember == true || $remember == 1)) {
+				$remember = true;
+			}else {
+				$remember = false;
+			}
+			$loginAccountOptions = array(
+				"type" => "static",
+				"user" => array(
+					"username" => $username,
+					"password" => $password
+				)
+			);
+			$loginAccount = $_user->login($loginAccountOptions);
+			if (isset($loginAccount['return'], $loginAccount['data']) && $loginAccount['return'] == true) {
+				if (isset($loginAccount['data']['id']) && is_numeric($loginAccount['data']['id'])) {
+					$userId = $loginAccount['data']['id'];
+					$getUserProfileOptions = array("action" => "get", "rows" => ["*"], "label" => "id", "value" => $userId, "limit" => "LIMIT 1");
+					$getUserProfile = $_user->profile($getUserProfileOptions);
+					if (isset($getUserProfile['return'], $getUserProfile['data'], $getUserProfile['data'][0]) && $getUserProfile['return'] == true) {
+						$_SESSION["user"]['logs']['login'] = $g_user['logs']['login'] = null;
+						$resetStorage = $_session->reset();
+						if (isset($resetStorage) && $resetStorage == true) {
+							$_client->token(true);
+						}
+						$userModeArr = array(
+							"login" => true,
+							"mode" => array(
+								"type" => "user",
+								"id" => $userId
+							),
+							"online" => time()
+						);
+						$g_user = array_merge($getUserProfile['data'][0], $userModeArr);
+						$_SESSION["user"] = $g_user;
+						$addUserOnline = $_user->online(array("action" => "add", "id" => $userId));
+						//.
+						$redirectArr = array();
+						$redirectArr['home'] = $_tool->links('::redirect::home');
+						if (isset($_SESSION["redirect"]['later']) && is_string($_SESSION["redirect"]['later'])) {
+							$redirectArr['later'] = $_SESSION["redirect"]['later'];
+							$redirectArr['later'] = $_tool->links($_tool->hash('decode', $redirectArr['later'], $_parameter->get('hash_sites_direct')));
+							if ($redirectArr['later'] == $redirectArr['home']) {
+								unset($redirectArr['later']);
+								unset($_SESSION["redirect"]['later']);
+							}
+						}else {
+							$redirectArr['later'] = null;
+						}
+						die(print json_encode(array("return" => true, "redirect" => $redirectArr)));
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "a#action.p:accounts.o:002")));
+					}
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "a#action.p:accounts.o:003")));
+				}
+			}else if (isset($loginAccount['return'], $loginAccount['reason']) && $loginAccount['return'] == false) {
+				if ($loginAccount['reason'] == "c#user.f:login.o:005") {
+					if (isset($g_user['logs'], $g_user['logs']['login']) && count($g_user['logs']['login']) > 0) {
+						$loginLogs = $g_user['logs']['login'];
+					}else {
+						if (!isset($g_user['logs']) || !is_array($g_user['logs'])) {
+							$_SESSION["user"]['logs'] = $g_user['logs'] = array();
+						}
+						$loginLogs = array();
+					}
+					$timesTry = 0;
+					foreach ($loginLogs as $isNum => $thisLog) {
+						if (isset($thisLog['label'], $thisLog['value'], $thisLog['time'], $thisLog['status'])) {
+							if ($thisLog['label'] == "username" && $thisLog['value'] == $username && $thisLog['status'] == 0) {
+								$timesTry++;
+							}
+						}else {
+							unset($loginLogs[$isNum]);
+						}
+					}
+					$loginLogs[] = array(
+						"label" => "username", 
+						"value" => $username, 
+						"time" => time(),
+						"status" => 0
+					);
+					$_SESSION["user"]['logs']['login'] = $g_user['logs']['login'] = $loginLogs;
+					$timeLimit = 3;
+					if ($countTry > $timeLimit) {
+						$timeSleep = 3 * intval($countTry / $timeLimit);
+						sleep($timeSleep);
+					}
+				}
+				die(print json_encode(array("return" => false, "reason" => $loginAccount['reason'])));
+			}else {
+				die(print json_encode(array("return" => false, "reason" => "a#action.p:accounts.o:004")));
+			}
+		}else if ($type == "register" || $type == "create") {
+			if (isset($ObjRequest['login']) && (is_bool($ObjRequest['login']) || (is_string($ObjRequest['login']) && in_array($ObjRequest['login'], ["true", "false"])))) $loginAccount = $ObjRequest['login']; else $loginAccount = false;
+			if (isset($ObjRequest['profile']['username']) && is_string($ObjRequest['profile']['username'])) $accountProfile['username'] = $ObjRequest['profile']['username']; else $accountProfile['username'] = null;
+			if (isset($ObjRequest['profile']['password']) && is_string($ObjRequest['profile']['password'])) $accountProfile['password'] = $ObjRequest['profile']['password']; else $accountProfile['password'] = null;
+			if (isset($ObjRequest['profile']['email']) && is_string($ObjRequest['profile']['email'])) $accountProfile['email'] = $ObjRequest['profile']['email']; else $accountProfile['email'] = null;
+			if (isset($ObjRequest['profile']['firstname']) && is_string($ObjRequest['profile']['firstname'])) $accountProfile['firstname'] = $ObjRequest['profile']['firstname']; else $accountProfile['firstname'] = null;
+			if (isset($ObjRequest['profile']['lastname']) && is_string($ObjRequest['profile']['lastname'])) $accountProfile['lastname'] = $ObjRequest['profile']['lastname']; else $accountProfile['lastname'] = null;
+			if (isset($ObjRequest['profile']['birthday']) && is_array($ObjRequest['profile']['birthday']) && count($ObjRequest['profile']['birthday']) == 3) $accountProfile['birthday'] = $ObjRequest['profile']['birthday']; else $accountProfile['birthday'] = null;
+			if (isset($ObjRequest['profile']['gender']) && is_string($ObjRequest['profile']['gender'])) $accountProfile['gender'] = $ObjRequest['profile']['gender']; else $accountProfile['gender'] = null;
+			if ($accountProfile['username'] == null || $accountProfile['password'] == null || $accountProfile['email'] == null || $accountProfile['firstname'] == null || $accountProfile['lastname'] == null || $accountProfile['birthday'] == null || $accountProfile['gender'] == null) {
+				die(print json_encode(array("return" => false, "reason" => "")));
+			}else {
+				//.
+				if ($loginAccount == "true") {
+					$loginAccount = true;
+				}else if ($loginAccount == "false") {
+					$loginAccount = false;
+				}
+				$createAccount = $_user->register(array("user" => $accountProfile));
+				if (isset($createAccount['return'], $createAccount['data']) && $createAccount['return'] == true) {
+					if (!isset($_SESSION["client"]['accounts']['create'])) {
+						$_SESSION["client"]['accounts']['create'] = array();
+					}
+					$_SESSION["client"]['accounts']['create'][] = array("time" => time(), "user" => $createAccount['data']['id']);
+					if (isset($loginAccount) && $loginAccount == true) {
+						$loginAccountOptions = array("type" => "static", "user" => array("username" => $accountProfile['username'], "password" => $accountProfile['password']));
+						$loginAccount = $_user->login($loginAccountOptions);
+						if (isset($loginAccount['return'], $loginAccount['data']) && $loginAccount['return'] == true) {
+							if (isset($loginAccount['data']['id']) && is_numeric($loginAccount['data']['id'])) {
+								$userId = $loginAccount['data']['id'];
+								$getUserProfileOptions = array("action" => "get", "rows" => ["*"], "label" => "id", "value" => $userId, "limit" => "LIMIT 1");
+								$getUserProfile = $_user->profile($getUserProfileOptions);
+								if (isset($getUserProfile['return'], $getUserProfile['data'], $getUserProfile['data'][0]) && $getUserProfile['return'] == true) {
+									$_SESSION["user"]['logs']['login'] = $g_user['logs']['login'] = null;
+									$resetStorage = $_session->reset();
+									if (isset($resetStorage) && $resetStorage == true) {
+										$_client->token(true);
+									}
+									$userModeArr = array(
+										"login" => true,
+										"mode" => array(
+											"type" => "user",
+											"id" => $userId
+										),
+										"online" => time()
+									);
+									$g_user = array_merge($getUserProfile['data'][0], $userModeArr);
+									$_SESSION["user"] = $g_user;
+									$addUserOnline = $_user->online(array("action" => "add", "id" => $userId));
+									//.
+								}else {
+									die(print json_encode(array("return" => false, "reason" => "")));
+								}
+							}else {
+								die(print json_encode(array("return" => false, "reason" => "")));
+							}
+						}
+					}else {
+						$_session->reset();
+					}
+					$redirectArr = array();
+					$redirectArr['home'] = $_tool->links('::redirect::home');
+					if (isset($_SESSION["redirect"]['later']) && is_string($_SESSION["redirect"]['later'])) {
+						$redirectArr['later'] = $_SESSION["redirect"]['later'];
+						$redirectArr['later'] = $_tool->links($_tool->hash('decode', $redirectArr['later'], $_parameter->get('hash_sites_direct')));
+						if ($redirectArr['later'] == $redirectArr['home']) {
+							unset($redirectArr['later']);
+							unset($_SESSION["redirect"]['later']);
+						}
+					}else {
+						$redirectArr['later'] = null;
+					}
+					die(print json_encode(array("return" => true, "redirect" => $redirectArr)));
+				}else if (isset($createAccount['return'], $createAccount['reason']) && $createAccount['return'] == false) {
+					die(print json_encode(array("return" => false, "reason" => $createAccount['reason'])));
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "2")));
+				}
+			}
+		}else if ($type == "active") {
+			if (isset($ObjRequest['username']) && is_string($ObjRequest['username'])) $username = $ObjRequest['username']; else $username = null;
+			if (isset($ObjRequest['code']) && is_string($ObjRequest['code'])) $code = $ObjRequest['code']; else $code = null;
+			if ($username == null || $code == null) {
+				die(print json_encode(array("return" => false, "reason" => "")));
+			}
+			$activeAccount = $_user->active(array("username" => $username, "code" => $code));
+			if (isset($activeAccount['return'], $activeAccount['data']) && $activeAccount['return'] == true) {
+				die(print json_encode(array("return" => true, "data" => $activeAccount['data'])));
+			}else if (isset($activeAccount['return'], $activeAccount['reason']) && $activeAccount['return'] == false) {
+				die(print json_encode(array("return" => false, "reason" => $activeAccount['reason'])));
+			}else {
+				die(print json_encode(array("return" => false, "reason" => "")));
+			}
+		}else if ($type == "getpassword") {
+			if (isset($ObjRequest['by']) && is_string($ObjRequest['by'])) $by = $ObjRequest['by']; else $by = null;
+			if ($by == null) {
+				die(print json_encode(array("return" => false, "reason" => "2")));
+			}
+			if (in_array($by, ["get", "getcode"])) {
+				if (isset($ObjRequest['username']) && is_string($ObjRequest['username'])) $username = $ObjRequest['username']; else $username = null;
+				if ($username == null) {
+					die(print json_encode(array("return" => false, "reason" => "2")));
+				}
+				$getpwAccount = $_user->getPassword(array("type" => "add", "username" => $username));
+				if (isset($getpwAccount['return'], $getpwAccount['data']) && $getpwAccount['return'] == true) {
+					die(print json_encode(array("return" => true, "type" => "get", "data" => $getpwAccount['data'])));
+				}else if (isset($getpwAccount['return'], $getpwAccount['reason']) && $getpwAccount['return'] == false) {
+					die(print json_encode(array("return" => false, "reason" => $getpwAccount['reason'])));
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else if (in_array($by, ["type", "typecode"])) {
+				if (isset($ObjRequest['code']) && is_string($ObjRequest['code'])) $code = $ObjRequest['code']; else $code = null;
+				if ($code == null) {
+					die(print json_encode(array("return" => false, "reason" => "2")));
+				}
+				$getpwAccount = $_user->getPassword(array("type" => "check", "code" => $code));
+				if (isset($getpwAccount['return'], $getpwAccount['data']) && $getpwAccount['return'] == true) {
+					die(print json_encode(array("return" => true, "type" => "check", "data" => $getpwAccount['data'])));
+				}else if (isset($getpwAccount['return'], $getpwAccount['reason']) && $getpwAccount['return'] == false) {
+					die(print json_encode(array("return" => false, "reason" => $getpwAccount['reason'])));
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else if (in_array($by, ["use", "usecode"])) {
+				if (isset($ObjRequest['password']) && is_string($ObjRequest['password'])) $password = $ObjRequest['password']; else $password = null;
+				if (isset($ObjRequest['code']) && is_string($ObjRequest['code'])) $code = $ObjRequest['code']; else $code = null;
+				if ($code == null || $password == null) {
+					die(print json_encode(array("return" => false, "reason" => "2")));
+				}
+				$getpwAccount = $_user->getPassword(array("type" => "use", "code" => $code, "password" => $password));
+				if (isset($getpwAccount['return']) && $getpwAccount['return'] == true) {
+					$redirectArr['home'] = $_tool->links('::redirect::home');
+					if (isset($_SESSION["redirect"]['later'])) {
+						$redirectArr['later'] = $_tool->links($_tool->hash('decode', $_SESSION["redirect"]['later'], $_parameter->get('hash_sites_direct')));
+						if ($redirectArr['later'] == $redirectArr['home']) {
+							unset($redirectArr['later']);
+						}
+					}
+					die(print json_encode(array("return" => true, "redirect" => $redirectArr)));
+				}else if (isset($getpwAccount['return'], $getpwAccount['reason']) && $getpwAccount['return'] == false) {
+					die(print json_encode(array("return" => false, "reason" => $getpwAccount['reason'])));
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else {
+				die(print json_encode(array("return" => false, "reason" => "")));
+			}
+		}else {
+			die(print json_encode(array("return" => false, "reason" => "")));
+		}
+	}else if ($port == "user" && $token == $g_client['token']['action']['user']) {
+		if ($type == "reload") {
+			$photosMediaCacheClean = $_media->cache("photos", array("guy" => $g_user['mode'], "user" => array("id" => $g_user['id']), "action" => "clean"));
+			$musicMediaCacheClean = $_media->cache("music", array("guy" => $g_user['mode'], "user" => array("id" => $g_user['id']), "action" => "clean"));
+			$videosMediaCacheClean = $_media->cache("videos", array("guy" => $g_user['mode'], "user" => array("id" => $g_user['id']), "action" => "clean"));
+			if (!$photosMediaCacheClean || !$musicMediaCacheClean || !$videosMediaCacheClean) {
+				die(print json_encode(array("return" => false, "reason" => "1")));
+			}else {
+				foreach ($_COOKIE as $cookieLabel => $cookieValue) {
+					if (in_array($cookieLabel, ["gPlayer_volume", "gPlayer_resizeT_o"])) {
+						setcookie($cookieLabel, $cookieValue, 0, $_parameter->get('cookie.host.path'), $g_client['http']['secure'], false);
+					}
+				}
+				$userOnlineAdd = $_user->online(array("action" => "add", "id" => $g_user['id']));
+				if (isset($userOnlineAdd['return']) && $userOnlineAdd['return'] == true) {
+					die(print json_encode(array("return" => true)));
+				}else if (isset($userOnlineAdd['return'], $userOnlineAdd['reason']) && $userOnlineAdd['return'] == false) {
+					die(print json_encode(array("return" => false, "reason" => $userOnlineAdd['reason'])));
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "2")));
+				}
+			}
+		}else if ($type == "privatecheck") {
+			if (isset($ObjRequest['id']) && (is_string($ObjRequest['id']) || is_numeric($ObjRequest['id']))) $id = $ObjRequest['id']; else $id = null;
+			if ($id == null) {
+				die(print json_encode(array("return" => false, "reason" => "")));
+			}
+			if ($g_user['id'] == $id) {
+				$dataArr = array(
+					"tag" => $g_user['username'],
+					"name" => $g_user['fullname']
+				);
+				die(print json_encode(array("return" => true, "data" => $dataArr)));
+			}else {
+				die(print json_encode(array("return" => false, "reason" => "")));
+			}
+		}else if ($type == "autocomplete") {
+			if (isset($ObjRequest['path']) && is_string($ObjRequest['path'])) $path = $ObjRequest['path']; else $path = null;
+			if (isset($ObjRequest['from']) && is_string($ObjRequest['from'])) $from = $ObjRequest['from']; else $from = null;
+			if (isset($ObjRequest['value']) && is_string($ObjRequest['value'])) $value = $ObjRequest['value']; else $value = null;
+			if ($value == null || $from == null) {
+				die(print json_encode(array("return" => false, "reason" => "")));
+			}
+			if ($path == null) {
+				die(print json_encode(array("return" => false, "reason" => "")));
+			}
+			$value = $_tool->convertDatabaseString($ObjRequest['value']);
+			if ($path == "info") {
+				$d_user = $d_groups = $d_pages = array();
+				$arrWords = $_tool->StringtoArray($value, false);
+				$arrWordsCount = array_count_values($arrWords);
+				if ($from == "user" || $from == "friends" || $from == "all") {
+					if ($from == "user") {
+						$sqlRegex[] = "`fullname` LIKE '%{$value}%'";
+						$sqlRegex[] = "`username` = '{$value}'";
+						$sqlRegex[] = "`email` = '{$value}'";
+						$sqlRegex[] = "`phone` = '{$value}'";
+						$sqlRegex[] = "`link` = '{$value}'";
+					}else if ($from == "friends") {
+						$sqlRegex[] = "`fullname` LIKE '%{$value}%'";
+						$sqlRegex[] = "`username` LIKE '%{$value}%'";
+						$sqlRegex[] = "`email` = '{$value}'";
+						$sqlRegex[] = "`phone` = '{$value}'";
+						$sqlRegex[] = "`link` = '{$value}'";
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+					foreach ($sqlRegex as $key => $sqlRegexValue) {
+						if (isset($searchRequest_regex) && $searchRequest_regex != '') {
+							$searchRequest_regex .= " OR ".$sqlRegexValue;
+						}else {
+							$searchRequest_regex = $sqlRegexValue;
+						}
+					}
+					if ($from == "user") {
+						$searchRequest = "SELECT `id` FROM `users` WHERE `private.search` >= '{$_parameter->get('user_private.search_agree')}' AND ({$searchRequest_regex}) ORDER BY CHAR_LENGTH (`fullname`) ASC";
+					}else if ($from == "friends") {
+						$searchRequest = "SELECT `id` FROM `users` WHERE `private.tag` >= '{$_parameter->get('user_private.tag_agree')}' AND `id` IN (SELECT `guy.id` FROM `friends` WHERE `user.id` = '{$g_user['id']}') AND ({$searchRequest_regex}) ORDER BY CHAR_LENGTH (`fullname`) ASC";
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+					$searchQuery = mysqli_query($_db->port('beta'), $searchRequest);
+					if (!$searchQuery) {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+					if (mysqli_num_rows($searchQuery) > 0) {
+						while ($searchFetch = mysqli_fetch_assoc($searchQuery)) {
+							$getUserAction = $_user->profile(array("action" => "get", "rows" => ["id", "username", "fullname", "avatar.small", "cover.small"], "label" => "id", "value" => $searchFetch['id'], "limit" => "LIMIT 1"));
+							if (isset($getUserAction['return'], $getUserAction['data'], $getUserAction['data'][0]) && $getUserAction['return'] == true) {
+								$getUserAction['data'] = $getUserAction['data'][0];
+								$d_user[] = array(
+									"id" => $getUserAction['data']['id'],
+									"tag" => $getUserAction['data']['username'],
+									"name" => $getUserAction['data']['fullname'],
+									"avatar" => $getUserAction['data']['avatar.small'],
+									"cover" => $getUserAction['data']['cover.small']
+								);
+							}else {
+								continue;
+							}
+						}
+					}
+				}
+				if ($from == "groups" || $from == "all") {
+					//.
+				}
+				if ($from == "pages" || $from == "all") {
+					//.
+				}
+				die(print json_encode(array("return" => true, "s" => $searchRequest, "data" => array("user" => $d_user, "groups" => $d_groups, "pages" => $d_pages))));
+			}else if ($path == "mood") { 
+				$searchRequest_regex = "`text` LIKE '%{$value}%'";
+				$d_feels = array();
+				if ($from == "feel" || $from == "all") {
+					$searchRequest = "SELECT `type`, `code` FROM `mood` WHERE `code` IN (SELECT `code` FROM `languages_values` WHERE `language` = '{$g_client['language']['code']}' AND `code` REGEXP '^[[.left-square-bracket.]]feel[[.right-square-bracket.]]' AND ({$searchRequest_regex})) ORDER BY CHAR_LENGTH(`code`) ASC";
+					$searchQuery = mysqli_query($_db->port('beta'), $searchRequest);
+					while ($searchFetch = mysqli_fetch_assoc($searchQuery)) {
+						$d_feels[] = array(
+							"type" => $searchFetch['type'],
+							"code" => $searchFetch['code'],
+							"text" => $_language->text($searchFetch['code'], "ucfirst"),
+							"emoticon" => ""
+						);
+					}
+				}
+				die(print json_encode(array("return" => true, "data" => array("feels" => $d_feels))));
+			}else if ($path == "media") {
+				$arrWords = $_tool->StringtoArray($value, false);
+				$arrWordsCount = array_count_values($arrWords);
+				$d_scrapbook = $d_album = $d_playlist = array();
+				if ($from == "scrapbook" || $from == "all") {
+					foreach ($arrWordsCount as $keyword => $keywordCount) {
+						if (isset($searchRequest_regex) && $searchRequest_regex != '') {
+							$searchRequest_regex .= " AND `name` REGEXP '{$keyword}{{$keywordCount}}'";
+						}else {
+							$searchRequest_regex = "`name` REGEXP '{$keyword}{{$keywordCount}}'";
+						}
+					}
+					$searchRequest_order = "ORDER BY CHAR_LENGTH(`name`) ASC";
+					$author = $g_user['mode'];
+					$searchRequest = "SELECT `name`, `time`, `display` FROM `photos_scrapbook` WHERE `author.type` = '{$author['type']}' AND `author.id` = '{$author['id']}' AND {$searchRequest_regex} {$searchRequest_order}";
+					$searchQuery = mysqli_query($_db->port('beta'),$searchRequest);
+					while ($searchFetch = mysqli_fetch_assoc($searchQuery)) {
+						$d_scrapbook[] = array(
+							"type" => "scrapbook",
+							"thumbnail" => "",
+							"name" => $searchFetch['name'],
+							"display" => $searchFetch['display'],
+							"time" => $searchFetch['time']
+						);
+					}
+				}
+				if ($from == "album" || $from == "all") {
+					foreach ($arrWordsCount as $keyword => $keywordCount) {
+						if (isset($searchRequest_regex) && $searchRequest_regex != '') {
+							$searchRequest_regex .= " AND `name` REGEXP '{$keyword}{{$keywordCount}}'";
+						}else {
+							$searchRequest_regex = "`name` REGEXP '{$keyword}{{$keywordCount}}'";
+						}
+					}
+					$searchRequest_order = "ORDER BY CHAR_LENGTH(`name`) ASC";
+					$author = $g_user['mode'];
+					$searchRequest = "SELECT `name`, `time`, `display` FROM `music_album` WHERE `author.type` = '{$author['type']}' AND `author.id` = '{$author['id']}' AND {$searchRequest_regex} {$searchRequest_order}";
+					$searchQuery = mysqli_query($_db->port('beta'),$searchRequest);
+					while ($searchFetch = mysqli_fetch_assoc($searchQuery)) {
+						$d_album[] = array(
+							"type" => "album",
+							"thumbnail" => "",
+							"name" => $searchFetch['name'],
+							"display" => $searchFetch['display'],
+							"time" => $searchFetch['time']
+						);
+					}
+				}
+				if ($from == "playlist" || $from == "all") {
+					foreach ($arrWordsCount as $keyword => $keywordCount) {
+						if (isset($searchRequest_regex) && $searchRequest_regex != '') {
+							$searchRequest_regex .= " AND `name` REGEXP '{$keyword}{{$keywordCount}}'";
+						}else {
+							$searchRequest_regex = "`name` REGEXP '{$keyword}{{$keywordCount}}'";
+						}
+					}
+					$searchRequest_order = "ORDER BY CHAR_LENGTH(`name`) ASC";
+					$author = $g_user['mode'];
+					$searchRequest = "SELECT `name`, `time`, `display` FROM `videos_playlist` WHERE `author.type` = '{$author['type']}' AND `author.id` = '{$author['id']}' AND {$searchRequest_regex} {$searchRequest_order}";
+					$searchQuery = mysqli_query($_db->port('beta'),$searchRequest);
+					while ($searchFetch = mysqli_fetch_assoc($searchQuery)) {
+						$d_playlist[] = array(
+							"type" => "playlist",
+							"thumbnail" => "",
+							"name" => $searchFetch['name'],
+							"display" => $searchFetch['display'],
+							"time" => $searchFetch['time']
+						);
+					}
+				}
+				die(print json_encode(array("return" => true, "data" => array("scrapbook" => $d_scrapbook, "album" => $d_album, "playlist" => $d_playlist))));
+			}else if ($path == "languages") {
+				if ($from == "supported") {
+					$pushRequest = "AND `supported` != '0'";
+				}else {
+					$pushRequest = null;
+				}
+				$d_languages = array();
+				if ($value == "all") {
+					$languageListRequest = "SELECT `name`, `code` FROM `languages_list` WHERE `id` > '0' {$pushRequest} ORDER BY `name` ASC";
+					$languageListQuery = mysqli_query($_db->port('beta'), $languageListRequest);
+					while ($languageListFetch = mysqli_fetch_assoc($languageListQuery)) {
+						$d_languages[] = array("name" => $languageListFetch['name'], "code" => $languageListFetch['code']);
+					}
+				}else {
+					$languageListRequest = "SELECT `name`, `code` FROM `languages_list` WHERE (`name` LIKE '%{$value}%' OR `code` = '{$value}' OR `country.name` LIKE '%{$value}%' OR `country.code` = '{$value}') {$pushRequest} ORDER BY `name` ASC";
+					$languageListQuery = mysqli_query($_db->port('beta'), $languageListRequest);
+					while ($languageListFetch = mysqli_fetch_assoc($languageListQuery)) {
+						$d_languages[] = array("name" => $languageListFetch['name'], "code" => $languageListFetch['code']);
+					}
+				}
+				die(print json_encode(array("return" => true, "data" => array("languages" => $d_languages))));
+			}else {
+				die(print json_encode(array("return" => false, "reason" => "")));
+			}
+		}else if (in_array($type, ["friend", "friends"])) {
+			if (isset($ObjRequest['id']) && (is_string($ObjRequest['id']) || is_numeric($ObjRequest['id']))) $guyId = $ObjRequest['id']; else $guyId = null;
+			if ($guyId == null) {
+				die(print json_encode(array("return" => false, "reason" => "")));
+			}
+			if (in_array($action, ["add_request"])) {
+				$addRequest = $_user->friends(array("action" => "add_request", "user" => array("id" => $g_user['id']), "guy" => array("id" => $guyId)));
+				if (isset($addRequest['return']) && $addRequest['return'] == true) {
+					die(print json_encode(array("return" => true)));
+				}else if (isset($addRequest['return'], $addRequest['reason']) && $addRequest['return'] == false) {
+					die(print json_encode(array("return" => false, "reason" => $addRequest['reason'])));
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else if (in_array($action, ["remove_request", "delete_request"])) {
+				$removeRequest = $_user->friends(array("action" => "remove_request", "user" => array("id" => $g_user['id']), "guy" => array("id" => $guyId)));
+				if (isset($removeRequest['return']) && $removeRequest['return'] == true) {
+					die(print json_encode(array("return" => true)));
+				}else if (isset($removeRequest['return'], $removeRequest['reason']) && $removeRequest['return'] == false) {
+					die(print json_encode(array("return" => false, "reason" => $removeRequest['reason'])));
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else if (in_array($action, ["exists_request"])) {
+				if (isset($ObjRequest['tway']) && is_bool($ObjRequest['tway'])) $tway = $ObjRequest['tway']; else $tway = false;
+				$existsRequest = $_user->friends(array("action" => "exists_request", "user" => array("id" => $g_user['id']), "guy" => array("id" => $guyId), "tway" => $tway));
+				if (isset($existsRequest['return']) && $existsRequest['return'] == true) {
+					die(print json_encode(array("return" => true)));
+				}else if (isset($existsRequest['return'], $existsRequest['reason']) && $existsRequest['return'] == false) {
+					die(print json_encode(array("return" => false, "reason" => $existsRequest['reason'])));
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else if (in_array($action, ["accept_request", "confirm_request"])) {
+				$confirmRequest = $_user->friends(array("action" => "confirm_request", "user" => array("id" => $g_user['id']), "guy" => array("id" => $guyId)));
+				if (isset($confirmRequest['return']) && $confirmRequest['return'] == true) {
+					die(print json_encode(array("return" => true)));
+				}else if (isset($confirmRequest['return'], $confirmRequest['reason']) && $confirmRequest['return'] == false) {
+					die(print json_encode(array("return" => false, "reason" => $confirmRequest['reason'])));
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else if (in_array($action, ["add_friend"])) {
+				$addFriend = $_user->friends(array("action" => "add_friend", "user" => array("id" => $g_user['id']), "guy" => array("id" => $guyId)));
+				if (isset($addFriend['return']) && $addFriend['return'] == true) {
+					die(print json_encode(array("return" => true)));
+				}else if (isset($addFriend['return'], $addFriend['reason']) && $addFriend['return'] == false) {
+					die(print json_encode(array("return" => false, "reason" => $addFriend['reason'])));
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else if (in_array($action, ["remove_friend", "delete_friend"])) {
+				$removeFriend = $_user->friends(array("action" => "remove_friend", "user" => array("id" => $g_user['id']), "guy" => array("id" => $guyId)));
+				if (isset($removeFriend['return']) && $removeFriend['return'] == true) {
+					die(print json_encode(array("return" => true)));
+				}else if (isset($removeFriend['return'], $removeFriend['reason']) && $removeFriend['return'] == false) {
+					die(print json_encode(array("return" => false, "reason" => $removeFriend['reason'])));
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else if (in_array($action, ["exists_friend"])) {
+				$existsFriend = $_user->friends(array("action" => "exists_friend", "user" => array("id" => $g_user['id']), "guy" => array("id" => $guyId)));
+				if (isset($existsFriend['return']) && $existsFriend['return'] == true) {
+					die(print json_encode(array("return" => true)));
+				}else if (isset($existsFriend['return'], $existsFriend['reason']) && $existsFriend['return'] == false) {
+					die(print json_encode(array("return" => false, "reason" => $existsFriend['reason'])));
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else {
+				die(print json_encode(array("return" => false, "reason" => "")));
+			}
+		}else if ($type == "info") {
+			if ($action == "get") {
+				if (isset($ObjRequest['rows']) && is_array($ObjRequest['rows']) && count($ObjRequest['rows']) > 0) $rowsArr = $ObjRequest['rows']; else $rowsArr = null;
+				if (isset($ObjRequest['id']) && is_string($ObjRequest['id'])) $userId = $ObjRequest['id']; else $userId = null;
+				if (isset($ObjRequest['secret']) && is_string($ObjRequest['secret'])) $userSecret = $ObjRequest['secret']; else $userSecret = null;
+				if ($rowsArr == null || $userId == null) {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+				foreach ($rowsArr as $rowsKey => $rowsValue) {
+					if ($rowsValue == null) {
+						unset($rowsArr[$rowsKey]);
+						continue;
+					}
+					if (in_array($rowsValue, ["token", "secret", "password", "password.hash"]) && $userSecret == null) {
+						unset($rowsArr[$rowsKey]);
+						continue;
+					}else if (preg_match("/^(private)+/", $rowsValue)) {
+						$rowsValue = $rowsArr[$rowsKey] = preg_replace("/(\-\>)/", ".", $rowsValue);
+					}
+					if (in_array($rowsValue, ["contact"])) {
+						$getContact = true;
+					}else if (in_array($rowsValue, ["education"])) {
+						$getEducation = true;
+					}else if (in_array($rowsValue, ["workplaces"])) {
+						$getWorkplaces = true;
+					}else if (in_array($rowsValue, ["live.info"])) {
+						$getLive = true;
+					}else if (in_array($rowsValue, ["country.info"])) {
+						$getCountry = true;
+					}
+					if (!in_array($rowsValue, ["username", "email", "password", "phone", "fullname", "firstname", "middlename", "lastname", "nickname", "gender", "interest", "birthday", "birthday.format", "relationship", "mate", "family", "language", "timezone", "introduction", "quote", "avatar.large", "avatar.medium", "avatar.small", "cover.large", "cover.medium", "cover.small", "theme", "link", "messages.translate", "private.tag", "private.search", "private.info.friends", "private.info.birthday", "private.info.country", "private.info.live", "private.info.email", "private.info.phone", "private.status.view", "private.status.comment", "private.status.share", "private.photos.view", "private.photos.comment", "private.photos.share", "private.music.view", "private.music.comment", "private.music.share", "private.videos.view", "private.videos.comment", "private.videos.share", "country", "country.description", "live", "live.description", "units.temperature", "units.speed", "units.pressure", "units.distance", "videos.replay", "music.replay", "activated", "verified", "dead"])) {
+						unset($rowsArr[$rowsKey]);
+						continue;
+					}
+				}
+				$rowsStr = array();
+				$rowsKey = $rowsValue = null;
+				if (count($rowsArr) > 0) {
+					foreach ($rowsArr as $rowsKey => $rowsValue) {
+						$rowsStr[] = $rowsValue;
+					}
+					if ($userSecret == null) {
+						$getInfoOptions = array(
+							"action" => "get",
+							"rows" => $rowsStr,
+							"label" => "id",
+							"value" => $userId,
+							"limit" => "LIMIT 1"
+						);
+					}else {
+						$getInfoOptions = array(
+							"action" => "get",
+							"rows" => $rowsStr,
+							"label" => "secret",
+							"value" => $userSecret,
+							"limit" => "LIMIT 1"
+						);
+					}
+					$getInfo = $_user->profile($getInfoOptions);
+					if (isset($getInfo['return'], $getInfo['data'], $getInfo['data'][0]) && $getInfo['return'] == true) {
+						$dataArr = $getInfo['data'][0];
+						foreach ($dataArr as $dataKey => $dataValue) {
+							if ($dataKey == "birthday") {
+								$dataArr['birthday'] = array(
+									"stamp" => $dataValue,
+									"day" => date('d', $dataValue),
+									"month" => date('m', $dataValue),
+									"year" => date('Y', $dataValue)
+								);
+							}
+						}
+						// die(print json_encode(array("return" => true, "data" => $dataArr)));
+					}else if (isset($getInfo['return'], $getInfo['reason']) && $getInfo['return'] == false) {
+						die(print json_encode(array("return" => false, "reason" => $getInfo['reason'])));
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "x")));
+					}
+				}else {
+					$dataArr = array();
+				}
+				if (isset($getContact) && $getContact == true) {
+					$getContact = $_user->contact(array("action" => "get", "id" => $userId));
+					if (isset($getContact['return'], $getContact['data']) && $getContact['return'] == true) {
+						$dataArr['contact'] = array();
+						foreach ($getContact['data'] as $dataThis) {
+							$dataArr['contact'][] = $dataThis;
+						}
+					}else {
+						//.
+					}
+				}
+				if (isset($getEducation) && $getEducation == true) {
+					$getEducation = $_user->education(array("action" => "get", "id" => $userId));
+					if (isset($getEducation['return'], $getEducation['data']) && $getEducation['return'] == true) {
+						$dataArr['education'] = array();
+						foreach ($getEducation['data'] as $dataThis) {
+							$dataArr['education'][] = $dataThis;
+						}
+					}else {
+						//.
+					}
+				}
+				if (isset($getWorkplaces) && $getWorkplaces == true) {
+					$getWorkplaces = $_user->workplaces(array("action" => "get", "id" => $userId));
+					if (isset($getWorkplaces['return'], $getWorkplaces['data']) && $getWorkplaces['return'] == true) {
+						$dataArr['workplaces'] = array();
+						foreach ($getWorkplaces['data'] as $dataThis) {
+							$dataArr['workplaces'][] = $dataThis;
+						}
+					}else {
+						//.
+					}
+				}
+				if (isset($getLive) && $getLive == true) {
+					$getLive = $_user->profile(array("action" => "get", "rows" => ['live'], "label" => "id", "value" => $userId));
+					if (isset($getLive['return'], $getLive['data'], $getLive['data'][0], $getLive['data'][0]['live']) && $getLive['return'] == true) {
+						if (isset($getLive['data'][0]['live']) && is_numeric($getLive['data'][0]['live'])) {
+							$getMapsPlaces = $_maps->places(array("action" => "get", "label" => "id", "value" => $getLive['data'][0]['live'], "limit" => "LIMIT 1"));
+							if (isset($getMapsPlaces['return'], $getMapsPlaces['data'], $getMapsPlaces['data'][0]) && $getMapsPlaces['return'] == true) {
+								$dataArr['live'] = array(
+									"value" => $getLive['data'][0]['live'],
+									"name" => $getMapsPlaces['data'][0]['name'],
+									"address" => $getMapsPlaces['data'][0]['address'],
+									"location" => $getMapsPlaces['data'][0]['location'],
+									"thumbnail" => $getMapsPlaces['data'][0]['thumbnail']
+								);
+							}else {
+								$dataArr['live'] = array(
+									"value" => $getLive['data'][0]['live']
+								);
+							}
+						}else {
+							$dataArr['live'] = array(
+								"value" => $getLive['data'][0]['live']
+							);
+						}
+					}else {
+						//.
+					}
+				}
+				if (isset($getCountry) && $getCountry == true) {
+					$getCountry = $_user->profile(array("action" => "get", "rows" => ['country'], "label" => "id", "value" => $userId));
+					if (isset($getCountry['return'], $getCountry['data'], $getCountry['data'][0], $getCountry['data'][0]['country']) && $getCountry['return'] == true) {
+						if (isset($getCountry['data'][0]['country']) && is_numeric($getCountry['data'][0]['country'])) {
+							$getMapsPlaces = $_maps->places(array("action" => "get", "label" => "id", "value" => $getCountry['data'][0]['country'], "limit" => "LIMIT 1"));
+							if (isset($getMapsPlaces['return'], $getMapsPlaces['data'], $getMapsPlaces['data'][0]) && $getMapsPlaces['return'] == true) {
+								$dataArr['country'] = array(
+									"value" => $getCountry['data'][0]['country'],
+									"name" => $getMapsPlaces['data'][0]['name'],
+									"address" => $getMapsPlaces['data'][0]['address'],
+									"location" => $getMapsPlaces['data'][0]['location'],
+									"thumbnail" => $getMapsPlaces['data'][0]['thumbnail']
+								);
+							}else {
+								$dataArr['country'] = array(
+									"value" => $getCountry['data'][0]['country']
+								);
+							}
+						}else {
+							$dataArr['country'] = array(
+								"value" => $getCountry['data'][0]['country']
+							);
+						}
+					}else {
+						//.
+					}
+				}
+				die(print json_encode(array("return" => true, "data" => $dataArr)));
+			}else if ($action == "update") {
+				if (isset($ObjRequest['rows']) && is_array($ObjRequest['rows']) && count($ObjRequest['rows']) > 0) $rowsArr = $ObjRequest['rows']; else $rowsArr = null;
+				if ($rowsArr == null) {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+				$notifyArr = array();
+				$reloadProfile = 0;
+				foreach ($rowsArr as $rowsArrThis) {
+					if (isset($rowsArrThis['label']) && is_string($rowsArrThis['label'])) $rowsArrThisLabel = $rowsArrThis['label']; else $rowsArrThisLabel = null;
+					if (isset($rowsArrThis['value']) && $rowsArrThis['value'] != null) $rowsArrThisValue = $rowsArrThis['value']; else $rowsArrThisValue = null;
+					if ($rowsArrThisLabel == null || $rowsArrThisValue == null) {
+						continue;
+					}
+					if (in_array($rowsArrThisLabel, ["live", "country"])) {
+						if (is_array($rowsArrThisValue)) {
+							$placesCode = $rowsArrThisValue['code'];
+							$getMapsPlaces = $_maps->places(true, array("type" => "get", "rows" => "`id`", "code" => $placesCode));
+							if (isset($getMapsPlaces['return'], $getMapsPlaces['data'], $getMapsPlaces['data'][0]) && $getMapsPlaces['return'] == true) {
+								$rowsArrThisValue = $getMapsPlaces['data'][0]['id'];
+							}else {
+								$addMapsPlaces = $_maps->places(true, array("type" => "add", "code" => $placesCode));
+								if (isset($addMapsPlaces['return']) && $addMapsPlaces['return'] == true) {
+									$rowsArrThisValue = $addMapsPlaces['data']['id'];
+								}else {
+									$rowsArrThisValue = $rowsArrThisValue['address'];
+								}
+							}
+						}else {
+							$rowsArrThisValue = $rowsArrThisValue;
+						}
+					}else if (preg_match("/^(private)+/", $rowsArrThisLabel)) {
+						$rowsArrThisLabel = preg_replace("/(\-\>)/", ".", $rowsArrThisLabel);
+					}
+					$updateUserInfo = $_user->info("update", array("label" => $rowsArrThisLabel, "value" => $rowsArrThisValue));
+					if (isset($updateUserInfo['return']) && $updateUserInfo['return'] == true) {
+						$notifyArr[$rowsArrThis['label']] = true;
+						$reloadProfile++;
+					}else {
+						$notifyArr[$rowsArrThis['label']] = false;
+					}
+				}
+				if ($reloadProfile > 0) {
+					$_user->reloadProfile($g_user['id']);
+				}
+				die(print json_encode(array("return" => true, "notify" => $notifyArr)));
+			}
+		}else {
+			die(print json_encode(array("return" => false, "reason" => "")));
+		}
+	}else if ($port == "photos" && $token == $g_client['token']['action']['photos']) {
+		if ($type == "editor") {
+			if ($action == "preview") {
+				if (isset($ObjRequest['name']) && is_string($ObjRequest['name'])) $imgName = $ObjRequest['name']; else $imgName = null;
+				if (isset($ObjRequest['options']) && is_string($ObjRequest['options'])) $editorOptions = $ObjRequest['options']; else $editorOptions = null;
+				if ($imgName == null) {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+				if ($editorOptions == "resize") {
+					if (isset($ObjRequest['height']) && is_string($ObjRequest['height'])) $imgHeight = $ObjRequest['height']; else $imgHeight = null;
+					if (isset($ObjRequest['width']) && is_string($ObjRequest['width'])) $imgWidth = $ObjRequest['width']; else $imgWidth = null;
+					$getMediaCache = $_media->cache('photos', array("guy" => $g_user['mode'], "user" => array("id" => $g_user['id']), "action" => "get", "label" => "name", "value" => $imgName));
+					if (isset($getMediaCache['return'], $getMediaCache['data'][0]) && $getMediaCache['return'] == true && is_array($getMediaCache['data'][0])) {
+						$imgData = $getMediaCache['data'][0];
+						$imgDisplay = $imgData['path'];
+						$imgPhotosEditor = photosEditor::factory($imgData);
+						if ($imgWidth == null && $imgHeight != null) {
+							$imgPhotosEditor->resize($imgWidth, 0);
+						}else if ($imgWidth != null && $height == null) {
+							$imgPhotosEditor->resize(0, $imgHeight);
+						}else {
+							$imgPhotosEditor->resize($imgWidth, $imgHeight);
+						}
+						$_storage->recheck(array("format" => "image", "label" => "display", "value" => $imgDisplay));
+						die(print json_encode(array("return" => true)));
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+				}else if ($editorOptions == "effect") {
+					if (isset($_SESSION["cache"]['photos']['handling']['change'][$imgName])) {
+						$cachePhotosEditorChanging = $_SESSION["cache"]['photos']['handling']['change'][$imgName];
+					}else {
+						$cachePhotosEditorChanging = null;
+					}
+					if (isset($cachePhotosEditorChanging, $cachePhotosEditorChanging['wait']) && $cachePhotosEditorChanging != null) {
+						$imgIsWaiting = $cachePhotosEditorChanging['wait'];
+						if ($imgIsWaiting == true) {
+							$replaceMediaCacheOptions = array(
+								"guy" => $g_user['mode'], 
+								"action" => "replace", 
+								"set" => "cancel", 
+								"name" => $imgName
+							);
+							$replaceMediaCache = $_media->cache("photos", $replaceMediaCacheOptions);
+						}
+					}
+					if (isset($ObjRequest['layer']) && is_string($ObjRequest['layer'])) $effectLayer = $ObjRequest['layer']; else $effectLayer = null;
+					if (isset($ObjRequest['value']) && is_string($ObjRequest['value'])) $effectValue = $ObjRequest['value']; else $effectValue = null;
+					$cacheMediaGet = $_media->cache("photos", array("guy" => $g_user['mode'], "user" => array("id" => $g_user['id']), "action" => "get", "label" => "name", "value" => $imgName));
+					if (isset($cacheMediaGet['return'], $cacheMediaGet['data'][0]) && $cacheMediaGet['return'] == true && count($cacheMediaGet['data'][0]) > 0) {
+						$returnValue = false;
+						$imgData = $cacheMediaGet['data'][0];
+						$imgPhotosEditor = photosEditor::factory($imgData);
+						if ($effectLayer == "filter" && ($effectValue > 0 && $effectValue <= 8)) {
+							$imgPhotosEditor->filter($effectValue);
+							$returnValue = true;
+						}else if ($effectLayer == "brightness" && ($effectValue >= -25 && $effectValue <= 25)) {
+							$imgPhotosEditor->brightness($effectValue);
+							$returnValue = true;
+						}else if ($effectLayer == "contrast" && ($effectValue >= 0 && $effectValue <= 25)) {
+							$imgPhotosEditor->stretch("{$effectValue},0", true);
+							$returnValue = true;
+						}else if ($effectLayer == "rotate" && in_array($effectValue, ["-90", "+90", "left", "right"])) {
+							if ($effectValue == "left") {
+								$effectValue = -90;
+							}else if ($effectValue == "right") {
+								$effectValue = +90;
+							}
+							$imgPhotosEditor->rotate($value);
+							$returnValue = true;
+						}
+						if (isset($returnValue) && $returnValue == true) {
+							if (isset($_SESSION["cache"]['photos']['handling']['change'][$imgName])) {
+								$_SESSION["cache"]['photos']['handling']['change'][$imgName]['wait'] = true;
+							}
+							$_storage->recheck(array("format" => "image", "label" => "display", "value" => $imgData['path']));
+							die(print json_encode(array("return" => true)));
+						}else {
+							die(print json_encode(array("return" => false, "reason" => "")));
+						}
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+				}else if ($editorOptions == "action") {
+					if (isset($ObjRequest['set']) && is_string($ObjRequest['set'])) $actionSet = $ObjRequest['set']; else $actionSet = null;
+					if ($actionSet == "apply" || $actionSet == "cancel") {
+						$cacheMediaGet = $_media->cache("photos", array("guy" => $g_user['mode'], "user" => array("id" => $g_user['id']), "action" => "replace", "set" => $actionSet, "name" => $imgName));
+						if (isset($cacheMediaGet['return']) && $cacheMediaGet['return'] == true) {
+							$_SESSION["cache"]['photos']['handling']['editor'][$imgName]['wait'] = false;
+							die(print json_encode(array("return" => true)));
+						}else {
+							die(print json_encode(array("return" => false, "reason" => "")));
+						}
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else {
+				die(print json_encode(array("return" => false, "reason" => "")));
+			}
+		}else if ($type == "cache") {
+			if ($action == "add") {
+				$fileUpload = $_FILES["file"];
+				$fileArr = $_tool->resetFileUpload($fileUpload);
+				$fileReturnArr = array();
+				$fileSecret = isset($ObjRequest['secret']) && is_string($ObjRequest['secret']) ? $ObjRequest['secret'] : null;
+				foreach ($fileArr as $key => $fileArrThis) {
+					$cacheMediaGet = $_media->cache("photos", array("guy" => $g_user['mode'], "user" => array("id" => $g_user['id']), "action" => "add", "file" => $fileArrThis));
+					if (isset($cacheMediaGet['return'], $cacheMediaGet['data']) && $cacheMediaGet['return'] == true && is_array($cacheMediaGet['data']) && count($cacheMediaGet['data']) > 0) {
+						$cacheMediaData = $cacheMediaGet['data'];
+						$fileReturnArr[$key] = array("type" => "photos", "local" => "cache", "verify" => "false");
+						$fileReturnArr[$key]['secret'] = $cacheMediaData['secret'];
+						$fileReturnArr[$key]['name'] = $cacheMediaData['name'];
+						$fileReturnArr[$key]['mime'] = $cacheMediaData['mime'];
+						$fileReturnArr[$key]['link'] = $_tool->links('photos/cache/'.$cacheMediaData['name']);
+						$fileReturnArr[$key]['nameraw'] = $fileArrThis['name'];
+						$fileReturnArr[$key]['sizeraw'] = $fileArrThis['size'];
+						/*
+						$optionsForm = array(
+							"robot" => $g_client['token']['robot'],
+							"token" => $g_client['token']['action']['photos'],
+							"port" => "photos",
+							"type" => "faces",
+							"action" => "get",
+						    "secret" => $media_cache["data"]['secret']
+						);
+						$optionsHeaders = array(
+							"token" => $g_client['token']['ajax'],
+							"referer" => $_tool->links(),
+							"host" => $_tool->links("::host"),
+							"x-requested-with" =>"XMLHttpRequest"
+						);
+						$_tool->curl($_tool->links("source/ajax/action.ajax"), 0, array("cookie" => true, "method" => "POST", "headers" => $optionsHeaders, "form" => $optionsForm));
+						*/
+					}else {
+						$fileReturnArr[$key] = array_merge($cacheMediaGet, array("secret" => $fileSecret));
+					}
+				}
+				die(print json_encode(array("return" => true, "data" => $fileReturnArr, "s" => $ObjRequest)));
+			}else if ($action == "copy") {
+				$imgSecret = isset($ObjRequest['secret']) && is_string($ObjRequest['secret']) ? $ObjRequest['secret'] : null;
+				$imgName = isset($ObjRequest['name']) && is_string($ObjRequest['name']) ? $ObjRequest['name'] : null;
+				if ($imgName == null || $imgSecret == null) {
+					die(print json_encode(array("return" => false, "reason" => "sdf")));
+				}
+				$getMediaCache = $_media->cache("photos", array("guy" => $g_user['mode'], "user" => array("id" => $g_user['id']), "action" => "copy", "secret" => $imgSecret, "name" => $imgName));
+				if (isset($getMediaCache['return'], $getMediaCache['data']) && $getMediaCache['return'] == true && is_array($getMediaCache['data'])) {
+					$imgData['original']['secret'] = $getMediaCache['data']['original']['secret'];
+					$imgData['original']['name'] = $getMediaCache['data']['original']['name'];
+					$imgData['original']['nameraw'] = $getMediaCache['data']['original']['nameraw'];
+					$imgData['original']['link'] = $_tool->links('photos/cache/'.$getMediaCache['data']['original']['name']);
+					$imgData['copy']['secret'] = $getMediaCache['data']['copy']['secret'];
+					$imgData['copy']['name'] = $getMediaCache['data']['copy']['name'];
+					$imgData['copy']['nameraw'] = $getMediaCache['data']['copy']['nameraw'];
+					$imgData['copy']['link'] = $_tool->links('photos/cache/'.$getMediaCache['data']['copy']['name']);
+					die(print json_encode(array("return" => true, "data" => $imgData)));
+				}else if (isset($getMediaCache['return'], $getMediaCache['reason']) && $getMediaCache['return'] == false) {
+					die(print json_encode(array("return" => false, "reason" => $getMediaCache['reason'])));
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "jhfh")));
+				}
+			}else if ($action == "delete") {
+				if (isset($ObjRequest['file']) && is_array($ObjRequest['file']) && count($ObjRequest['file']) > 0) $imgFileArr = $ObjRequest['file']; else $imgFileArr = null;
+				if ($imgFileArr == null) {
+					die(print json_encode(array("return" => false, "reason" => "wertger")));
+				}
+				$notifyArr = array();
+				foreach ($imgFileArr as $key => $imgFileArrThis) {
+					if (isset($imgFileArrThis['name']) && is_string($imgFileArrThis['name'])) $imgName = $imgFileArrThis['name']; else $imgName = null;
+					if (isset($imgFileArrThis['secret']) && is_string($imgFileArrThis['secret'])) $imgSecret = $imgFileArrThis['secret']; else $imgSecret = null;
+					if (isset($imgFileArrThis['verify']) && $imgFileArrThis['verify']) $imgVerify = $imgFileArrThis['verify']; else $imgVerify = null;
+					if (isset($imgVerify) && in_array($imgVerify, ["0", 0, "false", false])) {
+						$verifyValue = false;
+					}else if (isset($imgVerify) && in_array($imgVerify, ["1", 1, "true", true])) {
+						$verifyValue = true;
+					}else {
+						continue;
+					}
+					if ($imgName == null || $imgSecret == null) {
+						$notifyArr[] = array("return" => false, "reason" => "");
+					}
+					$deleteMediaFile = $_media->cache("photos", array("guy" => $g_user['mode'], "user" => array("id" => $g_user['id']), "action" => "delete", "secret" => $imgSecret, "name" => $imgName, "verify" => $imgVerify));
+					if (isset($deleteMediaFile['return']) && $deleteMediaFile['return'] == true) {
+						$notifyArr[] = array("return" => true, "file" => $imgFileArrThis);
+					}else if (isset($deleteMediaFile['return'], $deleteMediaFile['reason']) && $deleteMediaFile['return'] == false) {
+						$notifyArr[] = array("return" => false, "file" => $imgFileArrThis, "reason" => $deleteMediaFile['reason']);
+					}else {
+						$notifyArr[] = array("return" => false, "file" => $imgFileArrThis, "reason" => "");
+					}
+				}
+				die(print json_encode(array("return" => true, "data" => $notifyArr)));
+			}else if ($action == "push") {
+				if (isset($ObjRequest['file']) && is_array($ObjRequest['file']) && count($ObjRequest['file']) > 0) $imgFileArr = $ObjRequest['file']; else $imgFileArr = null;
+				if ($imgFileArr == null) {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+				$notifyArr = array();
+				foreach ($imgFileArr as $key => $imgFileArrThis) {
+					if (isset($imgFileArrThis['name']) && is_string($imgFileArrThis['name'])) $imgName = $imgFileArrThis['name']; else $imgName = null;
+					if (isset($imgFileArrThis['secret']) && is_string($imgFileArrThis['secret'])) $imgSecret = $imgFileArrThis['secret']; else $imgSecret = null;
+					if ($imgName == null || $imgSecret == null) {
+						$notifyArr[] = array("return" => false, "reason" => "");
+					}
+					$deleteMediaFile = $_media->cache("photos", array("guy" => $g_user['mode'], "user" => array("id" => $g_user['id']), "action" => "push", "secret" => $imgSecret, "name" => $imgName));
+					if (isset($deleteMediaFile['return']) && $deleteMediaFile['return'] == true) {
+						$notifyArr[] = array("return" => true, "file" => $imgFileArrThis);
+					}else if (isset($deleteMediaFile['return'], $deleteMediaFile['reason']) && $deleteMediaFile['return'] == false) {
+						$notifyArr[] = array("return" => false, "file" => $imgFileArrThis, "reason" => $deleteMediaFile['reason']);
+					}else {
+						$notifyArr[] = array("return" => false, "file" => $imgFileArrThis, "reason" => "");
+					}
+				}
+				die(print json_encode(array("return" => true, "data" => $notifyArr)));
+			}else {
+				die(print json_encode(array("return" => false, "reason" => "")));
+			}
+		}else if ($type == "info") {
+			if ($action == "get") {
+				die(print json_encode(array("return" => false)));
+			}else {
+				die(print json_encode(array("return" => false, "reason" => "")));
+			}
+		}else if ($type == "faces") {
+			if ($action == "write") {
+				if (isset($ObjRequest['photos']['local']) && is_string($ObjRequest['photos']['local'])) $photosLocal = $ObjRequest['photos']['local']; else $photosLocal = null;
+				if (isset($ObjRequest['photos']['label']) && is_string($ObjRequest['photos']['label'])) $photosLabel = $ObjRequest['photos']['label']; else $photosLabel = null;
+				if (isset($ObjRequest['photos']['value']) && is_string($ObjRequest['photos']['value'])) $photosValue = $ObjRequest['photos']['value']; else $photosValue = null;
+				if (isset($ObjRequest['boundingbox']['tl']['y']) && is_string($ObjRequest['boundingbox']['tl']['y'])) $boundingbox_tl_y = $ObjRequest['boundingbox']['tl']['y']; else $boundingbox_tl_y = null;
+				if (isset($ObjRequest['boundingbox']['tl']['x']) && is_string($ObjRequest['boundingbox']['tl']['x'])) $boundingbox_tl_x = $ObjRequest['boundingbox']['tl']['x']; else $boundingbox_tl_x = null;
+				if (isset($ObjRequest['boundingbox']['size']['height']) && is_string($ObjRequest['boundingbox']['size']['height'])) $boundingbox_size_height = $ObjRequest['boundingbox']['size']['height']; else $boundingbox_size_height = null;
+				if (isset($ObjRequest['boundingbox']['size']['width']) && is_string($ObjRequest['boundingbox']['size']['width'])) $boundingbox_size_width = $ObjRequest['boundingbox']['size']['width']; else $boundingbox_size_width = null;
+				if (isset($ObjRequest['guy']['type']) && is_string($ObjRequest['guy']['type'])) $guyType = $ObjRequest['guy']['type']; else $guyType = 0;
+				if (isset($ObjRequest['guy']['id']) && is_string($ObjRequest['guy']['id'])) $guyId = $ObjRequest['guy']['id']; else $guyId = null;
+				if ($photosLocal == null || $photosLabel == null || $photosValue == null) {
+					die(print json_encode(array("return" => false, "reason" => "1")));
+				}
+				if ($boundingbox_tl_y == null || $boundingbox_tl_x == null || $boundingbox_size_height == null || $boundingbox_size_width == null) {
+					die(print json_encode(array("return" => false, "reason" => "2")));
+				}
+				if ($guyType == null || $guyId == null) {
+					die(print json_encode(array("return" => false, "reason" => "3")));
+				}
+				if ($photosLocal == "cache") {
+					$dbName = "photos_cache";
+				}else if ($photosLocal == "drive") {
+					$dbName = "photos_info";
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "4")));
+				}
+				$getExists = $_media->exists("photos", array("db" => $dbName, "label" => $photosLabel, "value" => $photosValue));
+				if (isset($getExists['return'], $getExists['exists']) && $getExists['return'] == true && $getExists['exists'] == true) {
+					$photosId = $getExists['id'][0];
+					if ($photosLocal == "cache") {
+						$photosQuerySql = "SELECT `secret`, `name` FROM {$dbName} WHERE `id` = '{$photosId}' ORDER BY `id` DESC LIMIT 1;";
+					}else if ($photosLocal == "cache") {
+						$photosQuerySql = "SELECT `display` FROM {$dbName} WHERE `id` = '{$photosId}' ORDER BY `id` DESC LIMIT 1;";
+					}
+					$photosQuery = mysqli_query($_db->port('beta'), $photosQuerySql);
+					if (!$photosQuery) {
+						die(print json_encode(array("return" => false, "reason" => "xx5")));
+					}
+					$photosFetch = mysqli_fetch_assoc($photosQuery);
+					if ($photosLocal == "cache") {
+						$photosDisplay = $photosFetch['secret'];
+					}else if ($photosLocal == "drive") {
+						$photosDisplay = $photosFetch['display'];
+					}
+					$numTagQuerySql = "SELECT `id` FROM `photos_faces` WHERE `photos.path` = '{$photosDisplay}' AND `photos.local` = '{$photosLocal}' AND `boundingbox.tl.y` = '{$boundingbox_tl_y}' AND `boundingbox.tl.x` = '{$boundingbox_tl_x}' AND `boundingbox.size.height` = '{$boundingbox_size_height}' AND `boundingbox.size.width` = '{$boundingbox_size_width}' LIMIT 1";
+					$numTagQuery = mysqli_query($_db->port('beta'), $numTagQuerySql);
+					if ($numTagQuery) $numTag = mysqli_num_rows($numTagQuery); else $numTag = 0;
+					if ($numTag == 0) {
+						die(print json_encode(array("return" => false, "reason" => "6")));
+					}else {
+						//. check private guy.
+						$getMediaFile = $_storage->get(array("format" => "image", "label" => "display", "value" => $photosDisplay, "limit" => "LIMIT 1"));
+						if (isset($getMediaFile['return'], $getMediaFile['count'], $getMediaFile['file']) && $getMediaFile['return'] == true && $getMediaFile['count'] > 0) {
+							$imageSource = $getMediaFile['file'][0]['source'];
+							list($boundingbox_img_width, $boundingbox_img_height) = getimagesize($imageSource);
+							$boundingbox_ratio_height = $boundingbox_img_height / $boundingbox_size_height;
+							$boundingbox_ratio_width = $boundingbox_img_width / $boundingbox_size_width;
+						}else {
+							die(print json_encode(array("return" => false, "reason" => $getMediaFile)));
+						}
+						$numTagFecth = mysqli_fetch_assoc($numTagQuery);
+						$numTagId = $numTagFecth['id'];
+						$cacheFacestag = array();
+						$cacheFacestag['photos.path'] = $photosDisplay;
+						$cacheFacestag['photos.local'] = $photosLocal;
+						$cacheFacestag['faces.image'] = 0;
+						$cacheFacestag['faces'] = 0;
+						$cacheFacestag['token'] = hash('crc32', $cacheFacestag['photos.local'].'::'.$cacheFacestag['photos'].'::'.time());
+						$cacheFacestag['display'] = hash('md5', $cacheFacestag['token']);
+						$addCachePhotosFacesRequest = "
+						INSERT INTO `photos_faces` 
+						(`id`, `token`, `display`, `user.id`, `author.type`, `author.id`, `photos.path`, `photos.local`, `faces`, `faces.image`, `guy.type`, `guy.id`, `boundingbox.tl.y`, `boundingbox.tl.x`, `boundingbox.size.height`, `boundingbox.size.width`, `boundingbox.ratio.height`, `boundingbox.ratio.width`) 
+						VALUES 
+						(NULL, '{$cacheFacestag['token']}', '{$cacheFacestag['display']}', '{$g_user['id']}', '{$g_user['mode']['type']}', '{$g_user['mode']['id']}', '{$cacheFacestag['photos.path']}', '{$cacheFacestag['photos.local']}', '{$cacheFacestag['faces']}', '{$cacheFacestag['faces.image']}', {$guyType}, {$guyId}, '{$boundingbox_tl_y}', '{$boundingbox_tl_x}', '{$boundingbox_size_height}', '{$boundingbox_size_width}', '{$boundingbox_ratio_height}', '{$boundingbox_ratio_width}');
+						";
+						$addCachePhotosFacesQuery = mysqli_query($_db->port('beta'), $addCachePhotosFacesRequest);
+						if (!$addCachePhotosFacesQuery) {
+							die(print json_encode(array("return" => false, "reason" => "8")));
+						}else {
+							die(print json_encode(array("return" => true, "faces" => $cacheFacestag)));
+						}
+					}
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "9")));
+				}
+			}else if ($action == "get" || $action == "check") {
+				if (isset($ObjRequest['photos']['local']) && is_string($ObjRequest['photos']['local'])) $photosLocal = $ObjRequest['photos']['local']; else $photosLocal = null;
+				if (isset($ObjRequest['photos']['label']) && is_string($ObjRequest['photos']['label'])) $photosLabel = $ObjRequest['photos']['label']; else $photosLabel = null;
+				if (isset($ObjRequest['photos']['value']) && is_string($ObjRequest['photos']['value'])) $photosValue = $ObjRequest['photos']['value']; else $photosValue = null;
+				if ($photosLocal == null || $photosLabel == null || $photosValue == null) {
+					die(print json_encode(array("return" => false, "reason" => "1")));
+				}
+				if ($photosLocal == "cache") {
+					$dbName = "photos_cache";
+				}else if ($photosLocal == "drive") {
+					$dbName = "photos_info";
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "2")));
+				}
+				$getExists = $_media->exists("photos", array("db" => $dbName, "label" => $photosLabel, "value" => $photosValue));
+				if (isset($getExists['return'], $getExists['exists']) && $getExists['return'] == true && $getExists['exists'] == true) {
+					$photosId = $getExists['id'][0];
+					if ($photosLocal == "cache") {
+						$photosRequest = "SELECT `secret`, `name` FROM {$dbName} WHERE `id` = '{$photosId}' ORDER BY `id` DESC LIMIT 1";
+					}else if ($photosLocal == "cache") {
+						$photosRequest = "SELECT `display`, `file.original`, `file.large` FROM {$dbName} WHERE `id` = '{$photosId}' ORDER BY `id` DESC LIMIT 1";
+					}
+					$photosQuery = mysqli_query($_db->port('beta'), $photosRequest);
+					if (!$photosQuery) {
+						die(print json_encode(array("return" => false, "reason" => "3")));
+					}
+					$photosFetch = mysqli_fetch_assoc($photosQuery);
+					if ($photosLocal == "cache") {
+						$photosDisplay = $photosFetch['secret'];
+						$photosLink = $_tool->links('photos/cache/'.$photosFetch['name']);
+					}else if ($photosLocal == "drive") {
+						$photosDisplay = $photosFetch['display'];
+						if ($photosFetch['path.large'] != 0 && $photosFetch['file.large'] != 0) {
+							$photosLink = $_tool->links('photos/raw/'.$photosFetch['file.large']);
+						}else {
+							$photosLink = $_tool->links('photos/raw/'.$photosFetch['file.original']);
+						}
+					}
+					if (isset($_SESSION["cache"]['photos']['faces']['notfound'])) {
+						$cachePhotosFacesNotfound = $_SESSION["cache"]['photos']['faces']['notfound'];
+						foreach ($cachePhotosFacesNotfound as $key => $cachePhotosFacesNotfoundThis) {
+							if (isset($cachePhotosFacesNotfoundThis['photos'], $cachePhotosFacesNotfoundThis['photos.local'], $cachePhotosFacesNotfoundThis['user.id'], $cachePhotosFacesNotfoundThis['author.type'], $cachePhotosFacesNotfoundThis['author.id']) && is_string($cachePhotosFacesNotfoundThis['photos']) && is_string($cachePhotosFacesNotfoundThis['photos.local'])) {
+								if ($cachePhotosFacesNotfoundThis['user.id'] == $g_user['id'] && $cachePhotosFacesNotfoundThis['author.type'] == $g_user['mode']['type'] && $cachePhotosFacesNotfoundThis['author.id'] == $g_user['mode']['id'] && $cachePhotosFacesNotfoundThis['photos'] == $photosDisplay && $cachePhotosFacesNotfoundThis['photos.local'] == $photosLocal) {
+									$_SESSION["cache"]['photos']['faces']['notfound'] = $cachePhotosFacesNotfound;
+									if ($robotRequest == $g_client['token']['robot']) {
+										die(print json_encode(array("return" => true)));
+									}
+									die(print json_encode(array("return" => true, "image" => $imageData, "faces" => array())));
+								}
+							}else {
+								unset($cachePhotosFacesNotfound[$key]);
+							}
+						}
+					}
+					if (isset($_SESSION["cache"], $_SESSION["cache"]['photos'], $_SESSION["cache"]['photos']['faces'], $_SESSION["cache"]['photos']['faces']['handling'])) {
+						$cachePhotosFacesHandling = $_SESSION["cache"]['photos']['faces']['handling'];
+						foreach ($cachePhotosFacesHandling as $key => $cachePhotosFacesHandlingThis) {
+							if (isset($cachePhotosFacesHandlingThis['photos'], $cachePhotosFacesHandlingThis['photos.local'], $cachePhotosFacesHandlingThis['user.id'], $cachePhotosFacesHandlingThis['author.type'], $cachePhotosFacesHandlingThis['author.id']) && is_string($cachePhotosFacesHandlingThis['photos']) && is_string($cachePhotosFacesHandlingThis['photos.local'])) {
+								if ($cachePhotosFacesHandlingThis['user.id'] == $g_user['id'] && $cachePhotosFacesHandlingThis['author.type'] == $g_user['mode']['type'] && $cachePhotosFacesHandlingThis['author.id'] == $g_user['mode']['id'] && $cachePhotosFacesHandlingThis['photos'] == $photosDisplay && $cachePhotosFacesHandlingThis['photos.local'] == $photosLocal) {
+									$_SESSION["cache"]['photos']['faces']['handling'] = $cachePhotosFacesHandling;
+									if ($robotRequest == $g_client['token']['robot']) {
+										die(print json_encode(array("return" => false)));
+									}
+									die(print json_encode(array("return" => false, "reason" => "4")));
+								}
+							}else {
+								unset($cachePhotosFacesHandling[$key]);
+							}
+						}
+					}
+					if (isset($_SESSION["cache"], $_SESSION["cache"]['photos'], $_SESSION["cache"]['photos']['faces'], $_SESSION["cache"]['photos']['faces']['info'])) {
+						$cachePhotosFaces = $_SESSION["cache"]['photos']['faces']['info'];
+						$facesDataCache = array();
+						foreach ($cachePhotosFaces as $key => $cachePhotosFacesThis) {
+							if (isset($cachePhotosFacesThis['photos'])) {
+								if (isset($cachePhotosFacesThis['user.id'], $cachePhotosFacesThis['author.type'], $cachePhotosFacesThis['author.id'])) {
+									if ($cachePhotosFacesThis['photos'] == $photosDisplay && $cachePhotosFacesThis['photos.local'] == $photosLocal) {
+										if (isset($cachePhotosFacesThis['faces'], $cachePhotosFacesThis['thumbnail'], $cachePhotosFacesThis['display'], $cachePhotosFacesThis['position'], $cachePhotosFacesThis['size'], $cachePhotosFacesThis['ratio'])) {
+											if ($cachePhotosFacesThis['user.id'] == $g_user['id'] && $cachePhotosFacesThis['author.type'] == $g_user['mode']['type'] && $cachePhotosFacesThis['author.id'] == $g_user['mode']['id']) {
+												$cachePhotosFacesThisPush = $cachePhotosFacesThis;
+												if (isset($cachePhotosFacesThisPush['user.id'])) {
+													unset($cachePhotosFacesThisPush['user.id']);
+												}
+												if (isset($cachePhotosFacesThisPush['author.type'])) {
+													unset($cachePhotosFacesThisPush['author.type']);
+												}
+												if (isset($cachePhotosFacesThisPush['author.id'])) {
+													unset($cachePhotosFacesThisPush['author.id']);
+												}
+												$facesDataCache[] = $cachePhotosFacesThisPush;
+											}else {
+												continue;
+											}
+										}else {
+											unset($cachePhotosFaces[$key]);
+										}
+									}else {
+										continue;
+									}
+								}else if (!isset($cachePhotosFacesThis['user.id'], $cachePhotosFacesThis['author.type'], $cachePhotosFacesThis['author.id'])) {
+									unset($cachePhotosFaces[$key]);
+								}else {
+									continue;
+								}
+							}else {
+								unset($cachePhotosFaces[$key]);
+							}
+						}
+						$_SESSION["cache"]['photos']['faces']['info'] = $cachePhotosFaces;
+						if (count($facesDataCache) > 0) {
+							if ($robotRequest == $g_client['token']['robot']) {
+								die(print json_encode(array("return" => true)));
+							}
+							die(print json_encode(array("return" => true, "faces" => $facesDataCache)));
+						}
+					}
+					$imgUrl = $photosLink;
+					$getAnalysis = $_faces->id(array("guy" => $g_user['mode'], "action" => "check", "content" => $imgUrl));
+					if (isset($getAnalysis['return'], $getAnalysis['faces']) && $getAnalysis['return'] == true && is_array($getAnalysis['faces'])) {
+						$faceAnalysis = $getAnalysis['faces'];
+						$facesData = array();
+						if (count($getAnalysis['faces']) == 0) {
+							$_SESSION["cache"]['photos']['faces']['notfound'][] = array(
+								"user.id" => $g_user['id'],
+								"author.type" => $g_user['mode']['type'],
+								"author.id" => $g_user['mode']['id'],
+								"photos.path" => $photosDisplay,
+								"photos.local" => $photosLocal
+							);
+						}
+						foreach ($faceAnalysis as $key => $faceAnalysisThis) {
+							if ($faceAnalysisThis['confidence'] < $_parameter->get('rekognition_rate_allow')) {
+								unset($faceAnalysis[$key]);
+							}else {
+								$facesData[] = $faceAnalysisThis;
+								continue;
+							}
+						}
+						die(print json_encode(array("return" => true, "faces" => $facesData, "s" => $getAnalysis)));
+					}else if (isset($getAnalysis['return'], $getAnalysis['reason']) && $getAnalysis['return'] == false) {
+						die(print json_encode(array("return" => false, "reason" => $getAnalysis['reason'])));
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "s5")));
+					}
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "6")));
+				}
+			}else if ($action == "add") {
+				if (isset($ObjRequest['photos']['local']) && is_string($ObjRequest['photos']['local'])) $photosLocal = $ObjRequest['photos']['local']; else $photosLocal = null;
+				if (isset($ObjRequest['photos']['label']) && is_string($ObjRequest['photos']['label'])) $photosLabel = $ObjRequest['photos']['label']; else $photosLabel = null;
+				if (isset($ObjRequest['photos']['value']) && is_string($ObjRequest['photos']['value'])) $photosValue = $ObjRequest['photos']['value']; else $photosValue = null;
+				if ($photosLocal == null || $photosLabel == null || $photosValue == null) {
+					die(print json_encode(array("return" => false, "reason" => "1")));
+				}
+				if ($photosLocal == "cache") {
+					$getMediaCache = $_media->cache("photos", array("guy" => $g_user['mode'], "user" => array("id" => $g_user['id']), "action" => "get", "label" => $photosLabel, "value" => $photosValue, "limit" => "LIMIT 1"));
+				}else if ($photosLocal == "drive") {
+					$getMediaCache = $_media->data("photos", array("guy" => $g_user['mode'], "user" => array("id" => $g_user['id']), "action" => "get", "label" => $photosLabel, "value" => $photosValue, "limit" => "LIMIT 1"));
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "2")));
+				}
+				if ($photosLocal == "cache" && isset($getMediaCache['return'], $getMediaCache['data'], $getMediaCache['data'][0]) && $getMediaCache['return'] == true && is_array($getMediaCache['data']) && count($getMediaCache['data']) > 0) {
+					$fileCache = $getMediaCache['data'][0];
+					$fileCache['local'] = "cache";
+					$fileCache['display'] = $fileCache['secret'];
+					$fileCache['link'] = $_tool->links('photos/cache/'.$fileCache['name']);
+					if (!isset($fileCache['path']) || $fileCache['path'] == null) {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+				}else if ($photosLocal == "drive" && isset($getMediaCache['return'], $getMediaCache['data'], $getMediaCache['data'][0]) && $getMediaCache['return'] == true && is_array($getMediaCache['data']) && count($getMediaCache['data']) > 0) {
+					$fileCache = $getMediaCache['data'][0];
+					$fileCache['local'] = "drive";
+					$fileCache['mime'] = $fileCache['mime_type'];
+					if (isset($fileCache['file.original'], $fileCache['file.large']) && $fileCache['file.original'] != null && $fileCache['file.large'] != null) {
+						if ($fileCache['file.large'] != 0) {
+							$fileCache['path'] = $fileCache['file.large'];
+							$fileCache['link'] = $_tool->links('photos/raw/'.$fileCache['file.large']);
+						}else {
+							$fileCache['path'] = $fileCache['file.original'];
+							$fileCache['link'] = $_tool->links('photos/raw/'.$fileCache['file.original']);
+						}
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "3")));
+					}
+				}else {
+					die(print json_encode(array("return" => false, "reason" => $getMediaCache)));
+				}
+				if (isset($fileCache['path']) && $fileCache['path'] != null) {
+					$getMediaFile = $_storage->get(array("format" => "image", "label" => "display", "value" => $fileCache['path'], "rows" => ["token", "path"], "limit" => "LIMIT 1"));
+					if (isset($getMediaFile['return'], $getMediaFile['count'], $getMediaFile['data']) && $getMediaFile['return'] == true && $getMediaFile['count'] > 0) {
+						$fileCache['source'] = $getMediaFile['data'][0]['source'];
+						if ($fileCache['local'] == "cache") {
+							list($fileCachesW, $fileCachesH) = getimagesize($fileCache['source']);
+							$fileCache['size'] = array("height" => $fileCachesH, "width" => $fileCachesW);
+						}else {
+							$fileCache['size'] = array("height" => $fileCache['size.height'], "width" => $fileCache['size.width']);
+						}
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "x")));
+					}
+				}
+				if (isset($fileCache) && is_array($fileCache) && count($fileCache) > 0) {
+					$imageData = array(
+						"link" => $fileCache['link'],
+						"display" => $fileCache['display'],
+						"mime" => $fileCache['mime'],
+						"name" => $fileCache['name'],
+						"size" => $fileCache['size']
+					);
+					if (isset($_SESSION["cache"]['photos']['faces']['notfound'])) {
+						$cachePhotosFacesNotfound = $_SESSION["cache"]['photos']['faces']['notfound'];
+						foreach ($cachePhotosFacesNotfound as $key => $cachePhotosFacesNotfoundThis) {
+							if (isset($cachePhotosFacesNotfoundThis['photos'], $cachePhotosFacesNotfoundThis['photos.local'], $cachePhotosFacesNotfoundThis['user.id'], $cachePhotosFacesNotfoundThis['author.type'], $cachePhotosFacesNotfoundThis['author.id']) && is_string($cachePhotosFacesNotfoundThis['photos']) && is_string($cachePhotosFacesNotfoundThis['photos.local'])) {
+								if ($cachePhotosFacesNotfoundThis['user.id'] == $g_user['id'] && $cachePhotosFacesNotfoundThis['author.type'] == $g_user['mode']['type'] && $cachePhotosFacesNotfoundThis['author.id'] == $g_user['mode']['id'] && $cachePhotosFacesNotfoundThis['photos'] == $fileCache['display'] && $cachePhotosFacesNotfoundThis['photos.local'] == $fileCache['local']) {
+									$_SESSION["cache"]['photos']['faces']['notfound'] = $cachePhotosFacesNotfound;
+									if ($robotRequest == $g_client['token']['robot']) {
+										die(print json_encode(array("return" => true)));
+									}
+									die(print json_encode(array("return" => true, "image" => $imageData, "faces" => array())));
+								}else {
+									continue;
+								}
+							}else {
+								unset($cachePhotosFacesNotfound[$key]);
+							}
+						}
+					}
+					if (isset($_SESSION["cache"], $_SESSION["cache"]['photos'], $_SESSION["cache"]['photos']['faces'], $_SESSION["cache"]['photos']['faces']['handling'])) {
+						$cachePhotosFacesHandling = $_SESSION["cache"]['photos']['faces']['handling'];
+						foreach ($cachePhotosFacesHandling as $key => $cachePhotosFacesHandlingThis) {
+							if (isset($cachePhotosFacesHandlingThis['photos'], $cachePhotosFacesHandlingThis['photos.local'], $cachePhotosFacesHandlingThis['user.id'], $cachePhotosFacesHandlingThis['author.type'], $cachePhotosFacesHandlingThis['author.id']) && is_string($cachePhotosFacesHandlingThis['photos']) && is_string($cachePhotosFacesHandlingThis['photos.local'])) {
+								if ($cachePhotosFacesHandlingThis['user.id'] == $g_user['id'] && $cachePhotosFacesHandlingThis['author.type'] == $g_user['mode']['type'] && $cachePhotosFacesHandlingThis['author.id'] == $g_user['mode']['id'] && $cachePhotosFacesHandlingThis['photos'] == $fileCache['display'] && $cachePhotosFacesHandlingThis['photos.local'] == $fileCache['local']) {
+									$_SESSION["cache"]['photos']['faces']['handling'] = $cachePhotosFacesHandling;
+									if ($robotRequest == $g_client['token']['robot']) {
+										die(print json_encode(array("return" => false)));
+									}
+									die(print json_encode(array("return" => false, "reason" => "6")));
+								}else {
+									continue;
+								}
+							}else {
+								unset($cachePhotosFacesHandling[$key]);
+							}
+						}
+					}
+					if (isset($_SESSION["cache"], $_SESSION["cache"]['photos'], $_SESSION["cache"]['photos']['faces'], $_SESSION["cache"]['photos']['faces']['info'])) {
+						$cachePhotosFaces = $_SESSION["cache"]['photos']['faces']['info'];
+						$facesDataCache = array();
+						foreach ($cachePhotosFaces as $key => $cachePhotosFacesThis) {
+							if (isset($cachePhotosFacesThis['photos'])) {
+								if (isset($cachePhotosFacesThis['user.id'], $cachePhotosFacesThis['author.type'], $cachePhotosFacesThis['author.id'])) {
+									if ($cachePhotosFacesThis['photos'] == $fileCache['display'] && $cachePhotosFacesThis['photos.local'] == $fileCache['local']) {
+										if (isset($cachePhotosFacesThis['faces'], $cachePhotosFacesThis['thumbnail'], $cachePhotosFacesThis['display'], $cachePhotosFacesThis['position'], $cachePhotosFacesThis['size'], $cachePhotosFacesThis['ratio'])) {
+											if ($cachePhotosFacesThis['user.id'] == $g_user['id'] && $cachePhotosFacesThis['author.type'] == $g_user['mode']['type'] && $cachePhotosFacesThis['author.id'] == $g_user['mode']['id']) {
+												$cachePhotosFacesThisPush = $cachePhotosFacesThis;
+												if (isset($cachePhotosFacesThisPush['user.id'])) {
+													unset($cachePhotosFacesThisPush['user.id']);
+												}
+												if (isset($cachePhotosFacesThisPush['author.type'])) {
+													unset($cachePhotosFacesThisPush['author.type']);
+												}
+												if (isset($cachePhotosFacesThisPush['author.id'])) {
+													unset($cachePhotosFacesThisPush['author.id']);
+												}
+												$facesDataCache[] = $cachePhotosFacesThisPush;
+											}
+										}else {
+											unset($cachePhotosFaces[$key]);
+										}
+									}
+								}else if (!isset($cachePhotosFacesThis['user.id'], $cachePhotosFacesThis['author.type'], $cachePhotosFacesThis['author.id'])) {
+									unset($cachePhotosFaces[$key]);
+								}
+							}else {
+								unset($cachePhotosFaces[$key]);
+							}
+						}
+						$_SESSION["cache"]['photos']['faces']['info'] = $cachePhotosFaces;
+						if (count($facesDataCache) > 0) {
+							if ($robotRequest == $g_client['token']['robot']) {
+								die(print json_encode(array("return" => true)));
+							}
+							die(print json_encode(array("return" => true, "image" => $imageData, "faces" => $facesDataCache)));
+						}
+					}
+					$photosGetFacesQuery = mysqli_query($_db->port('beta'), "SELECT * FROM `photos_faces` WHERE `photos.path` = '{$fileCache['display']}' AND `photos.local` = '{$fileCache['local']}' AND `author.type` = '{$g_user['mode']['type']}' AND `author.id` = '{$g_user['mode']['id']}' AND `user.id` = '{$g_user['id']}';");
+					if (!$photosGetFacesQuery) {
+						//.
+					}
+					if ($photosGetFacesQuery) $photosGetFacesCount = mysqli_num_rows($photosGetFacesQuery); else $photosGetFacesCount = 0;
+					if ($photosGetFacesCount > 0) {
+						$facesData = array();
+						while ($photosGetFaces = mysqli_fetch_assoc($photosGetFacesQuery)) {
+							$checkExists = $_faces->id(array("guy" => $g_user['mode'], "action" => "exists", "label" => "display", "value" => $photosGetFaces['faces']));
+							if (isset($checkExists['return'], $checkExists['exists']) && $checkExists['return'] == true && $checkExists['exists'] == false) {
+								mysqli_query($_db->port('beta'), "DELETE FROM `photos_cache_usertag` WHERE `id` = '{$photosGetFaces['id']}'");
+								continue;
+							}
+							if ($photosGetFaces['guy.type'] != null && $photosGetFaces['guy.id'] != null) {
+								if ($photosGetFaces['guy.type'] == "user") {
+									$getGuyName = $_user->profile(array("action" => "get", "label" => "id", "value" => $photosGetFaces['guy.id'], "rows" => ["fullname"]));
+									if (isset($getGuyName['return'], $getGuyName['data'], $getGuyName['data'][0]) && $getGuyName['return'] == true) {
+										$photosGetFaces['guy.name'] = $getGuyName['data'][0]['fullname'];
+									}
+								}
+							}else {
+								$photosGetFaces['guy.name'] = null;
+							}
+							$facesData[] = $facesDataThis = array(
+								"photos.path" => $photosGetFaces['photos.path'],
+								"photos.local" => $photosGetFaces['photos.local'],
+								"faces" => $photosGetFaces['faces'],
+								"thumbnail" => $_tool->links('photos/faces/'.$photosGetFaces['display']),
+								"display" => $photosGetFaces['display'],
+								"position" => array(
+									"x" => $photosGetFaces['boundingbox.tl.x'], 
+									"y" => $photosGetFaces['boundingbox.tl.y']
+								),
+								"size" => array(
+									"height" => $photosGetFaces['boundingbox.size.height'],
+									"width" => $photosGetFaces['boundingbox.size.width']
+								),
+								"ratio" => array(
+									"height" => $photosGetFaces['boundingbox.ratio.height'],
+									"width" => $photosGetFaces['boundingbox.ratio.width']
+								),
+								"guy.type" => $photosGetFaces['guy.type'],
+								"guy.id" => $photosGetFaces['guy.id'],
+								"guy.name" => $photosGetFaces['guy.name']
+							);
+							$facesDataThis['user.id'] = $g_user['id'];
+							$facesDataThis['author.type'] = $g_user['mode']['type'];
+							$facesDataThis['author.id'] = $g_user['mode']['id'];
+							$_SESSION["cache"]['photos']['faces']['info'][] = $facesDataThis;
+						}
+						if ($robotRequest == $g_client['token']['robot']) {
+							die(print json_encode(array("return" => true)));
+						}
+						die(print json_encode(array("return" => true, "image" => $imageData, "faces" => $facesData)));
+					}else {
+						$imgUrl = $fileCache['link'];
+						$getAnalysis = $_faces->id(array("guy" => $g_user['mode'], "action" => "check", "content" => $imgUrl));
+						if (isset($getAnalysis['return'], $getAnalysis['faces']) && $getAnalysis['return'] == true && is_array($getAnalysis['faces'])) {
+							$faceAnalysis = $getAnalysis['faces'];
+							$facesData = array();
+							if (count($getAnalysis['faces']) == 0) {
+								$_SESSION["cache"]['photos']['faces']['notfound'][] = array(
+									"user.id" => $g_user['id'],
+									"author.type" => $g_user['mode']['type'],
+									"author.id" => $g_user['mode']['id'],
+									"photos.path" => $fileCache['display'],
+									"photos.local" => $fileCache['local']
+								);
+							}
+							foreach ($faceAnalysis as $key => $faceAnalysisThis) {
+								if ($faceAnalysisThis['confidence'] < $_parameter->get('rekognition_rate_allow')) {
+									unset($faceAnalysis[$key]);
+								}else {
+									$faceAnalysis[$key]['photos'] = $fileCache['display'];
+								}
+							}
+							foreach ($faceAnalysis as $key => $faceAnalysisThis) {
+								$thumbnail = array("file" => $fileCache['source'], "mime" => $fileCache['mime'], "nameraw" => $fileCache['nameraw']);
+								$addAnalysisFaces = $_faces->id(array("guy" => $g_user['mode'], "action" => "add", "face" => $faceAnalysisThis, "thumbnail" => $thumbnail));
+								if (isset($addAnalysisFaces['return'], $addAnalysisFaces['obj']) && $addAnalysisFaces['return'] == true && is_array($addAnalysisFaces['obj']) && count($addAnalysisFaces['obj']) > 0) {
+									$cacheFacestag = array();
+									$cacheFacestag['photos.path'] = $fileCache['display'];
+									$cacheFacestag['photos.local'] = $fileCache['local'];
+									$cacheFacestag['faces.image'] = $addAnalysisFaces['obj']['thumbnail'];
+									$cacheFacestag['faces'] = $addAnalysisFaces['obj']['display'];
+									$cacheFacestag['token'] = hash('crc32', $cacheFacestag['faces']);
+									$cacheFacestag['display'] = hash('md5', $cacheFacestag['token']);
+									$insertCacheTaguserSql = "
+									INSERT INTO `photos_faces` (`id`, `token`, `display`, `user.id`, `author.type`, `author.id`, `photos.path`, `photos.local`, `faces`, `guy.type`, `guy.id`, `boundingbox.tl.y`, `boundingbox.tl.x`, `boundingbox.size.height`, `boundingbox.size.width`, `boundingbox.ratio.height`, `boundingbox.ratio.width`) 
+									VALUES (NULL, '{$cacheFacestag['token']}', '{$cacheFacestag['display']}', '{$g_user['id']}', '{$g_user['mode']['type']}', '{$g_user['mode']['id']}', '{$cacheFacestag['photos.path']}', '{$cacheFacestag['photos.local']}', '{$cacheFacestag['faces']}', null, null, '{$faceAnalysisThis['boundingbox.tl.y']}', '{$faceAnalysisThis['boundingbox.tl.x']}', '{$faceAnalysisThis['boundingbox.size.height']}', '{$faceAnalysisThis['boundingbox.size.width']}', '{$faceAnalysisThis['boundingbox.ratio.height']}', '{$faceAnalysisThis['boundingbox.ratio.width']}');
+									";
+									$insertCacheTaguserQuery = mysqli_query($_db->port('beta'), $insertCacheTaguserSql);
+									if (!$insertCacheTaguserQuery) {
+										//.
+									}else {
+										$facesData[] = $facesDataThis = array(
+											"photos.path" => $cacheFacestag['photos.path'],
+											"photos.local" => $cacheFacestag['photos.local'],
+											"faces" => $cacheFacestag['faces'],
+											"thumbnail" => $_tool->links('photos/faces/'.$cacheFacestag['display']),
+											"display" => $cacheFacestag['display'],
+											"position" => array(
+												"y" => $faceAnalysisThis['boundingbox.tl.y'], 
+												"x" => $faceAnalysisThis['boundingbox.tl.x']
+											),
+											"size" => array(
+												"height" => $faceAnalysisThis['boundingbox.size.height'],
+												"width" => $faceAnalysisThis['boundingbox.size.width']
+											),
+											"ratio" => array(
+												"height" => $faceAnalysisThis['boundingbox.ratio.height'],
+												"width" => $faceAnalysisThis['boundingbox.ratio.width']
+											),
+											"guy.type" => null,
+											"guy.id" => null,
+											"guy.name" => null
+										);
+										$facesDataThis['user.id'] = $g_user['id'];
+										$facesDataThis['author.type'] = $g_user['mode']['type'];
+										$facesDataThis['author.id'] = $g_user['mode']['id'];
+										$_SESSION["cache"]['photos']['faces']['info'][] = $facesDataThis;
+									}
+								}else {
+									continue;
+								}
+							}
+							if ($robotRequest == $g_client['token']['robot']) {
+								die(print json_encode(array("return" => true)));
+							}
+							die(print json_encode(array("return" => true, "image" => $imageData, "faces" => $facesData)));
+						}else if (isset($getAnalysis['return'], $getAnalysis['reason']) && $getAnalysis['return'] == false) {
+							die(print json_encode(array("return" => false, "reason" => "sx".$getAnalysis['reason'])));
+						}else {
+							die(print json_encode(array("return" => false, "reason" => "7")));
+						}
+					}
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "8")));
+				}
+			}else if ($action == "update" || $action == "change") {
+				if (isset($ObjRequest['tag']['label']) && is_string($ObjRequest['tag']['label'])) $tagLabel = $ObjRequest['tag']['label']; else $tagLabel = null;
+				if (isset($ObjRequest['tag']['value']) && is_string($ObjRequest['tag']['value'])) $tagValue = $ObjRequest['tag']['value']; else $tagValue = null;
+				if (isset($ObjRequest['guy']['type']) && is_string($ObjRequest['guy']['type'])) $guyType = $ObjRequest['guy']['type']; else $guyType = 0;
+				if (isset($ObjRequest['guy']['id']) && is_string($ObjRequest['guy']['id'])) $guyId = $ObjRequest['guy']['id']; else $guyId = null;
+				if ($tagLabel == null || $tagValue == null) {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+				if ($guyType == null && $guyId == null) {
+					$guySet = false;
+				}else if ($guyType != null && $guyId != null) {
+					$guySet = true;
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+				$numTagQuerySql = "SELECT * FROM `photos_faces` WHERE `{$tagLabel}` = '{$tagValue}' AND `author.type` = '{$g_user['mode']['type']}' AND `author.id` = '{$g_user['mode']['id']}' AND `user.id` = '{$g_user['id']}'";
+				$numTagQuery = mysqli_query($_db->port('beta'), $numTagQuerySql);
+				if ($numTagQuery) $numTag = mysqli_num_rows($numTagQuery); else $numTag = 0;
+				if ($numTag == 0) {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}else {
+					$tagFetch = mysqli_fetch_assoc($numTagQuery);
+					//. check guy private.
+					if ($guySet == true) {
+						if ($guyType == "user" || $guyType == "user") {
+							$getGuyName = $_user->profile(array("id" => $guyId, "rows" => "`fullname`"));
+							if (isset($getGuyName['return'], $getGuyName['data']) && $getGuyName['return'] == true) {
+								$guy_name = $getGuyName['data']['fullname'];
+							}else {
+								die(print json_encode(array("return" => false, "reason" => "")));
+							}
+						}else {
+							die(print json_encode(array("return" => false, "reason" => "")));
+						}
+					}
+					if (!$guySet) {
+						$updateSqlPush = "`guy.type` = null, `guy.id` = null";
+					}else {
+						$updateSqlPush = "`guy.type` = '{$guyType}', `guy.id` = '{$guyId}'";
+					}
+					$updateSql = "UPDATE `photos_faces` SET {$updateSqlPush} WHERE `{$tagLabel}` = '{$tagValue}' AND `author.type` = '{$g_user['mode']['type']}' AND `author.id` = '{$g_user['mode']['id']}' AND `user.id` = '{$g_user['id']}'";
+					$updateQuery = mysqli_query($_db->port('beta'), $updateSql);
+					if (!$updateQuery) {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}else {
+						if (isset($_SESSION["cache"], $_SESSION["cache"]['photos'], $_SESSION["cache"]['photos']['faces'], $_SESSION["cache"]['photos']['faces']['info'])) {
+							$cachePhotosFaces = $_SESSION["cache"]['photos']['faces']['info'];
+							foreach ($cachePhotosFaces as $key => $cachePhotosFacesThis) {
+								if (isset($cachePhotosFacesThis['photos'])) {
+									if (isset($cachePhotosFacesThis['user.id'], $cachePhotosFacesThis['author.type'], $cachePhotosFacesThis['author.id'])) {
+										if ($cachePhotosFacesThis['photos'] == $tagFetch['photos'] && $cachePhotosFacesThis['photos.local'] == $tagFetch['photos.local'] && $cachePhotosFacesThis['display'] == $tagFetch['display']) {
+											if (isset($cachePhotosFacesThis['faces'], $cachePhotosFacesThis['thumbnail'], $cachePhotosFacesThis['display'], $cachePhotosFacesThis['position'], $cachePhotosFacesThis['size'], $cachePhotosFacesThis['ratio'])) {
+												if ($cachePhotosFacesThis['user.id'] == $g_user['id'] && $cachePhotosFacesThis['author.type'] == $g_user['mode']['type'] && $cachePhotosFacesThis['author.id'] == $g_user['mode']['id']) {
+													$cachePhotosFaces[$key]['guy.type'] = $guyType;
+													$cachePhotosFaces[$key]['guy.id'] = $guyId;
+													$cachePhotosFaces[$key]['guy.name'] = $guy_name;
+												}else {
+													continue;
+												}
+											}else {
+												unset($cachePhotosFaces[$key]);
+											}
+										}else {
+											continue;
+										}
+									}else if (!isset($cachePhotosFacesThis['user.id'], $cachePhotosFacesThis['author.type'], $cachePhotosFacesThis['author.id'])) {
+										unset($cachePhotosFaces[$key]);
+									}else {
+										continue;
+									}
+								}else {
+									unset($cachePhotosFaces[$key]);
+								}
+							}
+							$_SESSION["cache"]['photos']['faces']['info'] = $cachePhotosFaces;
+						}
+						if ($robotRequest == $g_client['token']['robot']) {
+							die(print json_encode(array("return" => true)));
+						}
+						die(print json_encode(array("return" => true)));
+					}
+				}
+			}else if ($action == "delete" || $action == "remove") {
+				die(print json_encode(array("return" => true)));
+			}else {
+				die(print json_encode(array("return" => false, "reason" => "")));
+			}
+		}else {
+			die(print json_encode(array("return" => false, "reason" => "")));
+		}
+	}else if ($port == "music" && $token == $g_client['token']['action']['music']) {
+		if ($type == "cache") {
+			if ($action == "add") {
+				$fileUpload = $_FILES["file"];
+				$fileArr = $_tool->resetFileUpload($fileUpload);
+				$musikArr = array();
+				foreach ($fileArr as $key => $fileArrThis) {
+					$addMediaCache = $_media->cache("music", array("guy" => $g_user['mode'], "user" => array("id" => $g_user['id']), "action" => "add", "file" => $fileArrThis));
+					if (isset($addMediaCache['return'], $addMediaCache['data']) && $addMediaCache['return'] == true) {
+						$addMediaCacheData = $addMediaCache['data'];
+						$musikArr[$key] = array("type" => "music", "local" => "cache", "verify" => "false");
+						$musikArr[$key]['secret'] = $addMediaCacheData['secret'];
+						$musikArr[$key]['name'] = $addMediaCacheData['name'];
+						$musikArr[$key]['nameraw'] = $addMediaCacheData['nameraw'];
+						$musikArr[$key]['mime'] = $addMediaCacheData['mime'];
+						$musikArr[$key]['link'] = $_tool->links('music/cache/'.$addMediaCacheData['name']);
+						// $musikArr[$key]['thumbnail'] = $_tool->links('music/cache/thumbnail/'.$addMediaCacheData['thumbnail']);
+						$musikArr[$key]['thumbnail'] = null;
+						$musikArr[$key]['duration'] = $addMediaCacheData['duration'];
+					}else {
+						continue;
+					}
+				}
+				die(print json_encode(array("return" => true, "data" => $musikArr)));
+			}else if ($action == "copy") {
+				if (isset($ObjRequest['secret']) && is_string($ObjRequest['secret'])) $musikSecret = $ObjRequest['secret']; else $musikSecret = null;
+				if (isset($ObjRequest['name']) && is_string($ObjRequest['name'])) $musikName = $ObjRequest['name']; else $musikName = null;
+				if ($musikSecret == null || $musikName == null) {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+				$copyMediaCache = $_media->cache("music", array("guy" => $g_user['mode'], "user" => array("id" => $g_user['id']), "action" => "copy", "secret" => $musikSecret, "name" => $musikName));
+				if (isset($copyMediaCache['return'], $copyMediaCache['data']) && $copyMediaCache['return'] == true){
+					$copyMediaCacheData = $copyMediaCache['data'];
+					$musikData['original']['secret'] = $copyMediaCacheData['original']['secret'];
+					$musikData['original']['name'] = $copyMediaCacheData['original']['name'];
+					$musikData['original']['nameraw'] = $copyMediaCacheData['original']['nameraw'];
+					$musikData['original']['link'] = $_tool->links('music/cache/'.$copyMediaCacheData['original']['name']);
+					$musikData['original']['link'] = $_tool->links('music/cache/thumbnail/'.$copyMediaCacheData['original']['thumbnail']);
+					$musikData['copy']['secret'] = $copyMediaCacheData['copy']['secret'];
+					$musikData['copy']['name'] = $copyMediaCacheData['copy']['name'];
+					$musikData['copy']['nameraw'] = $copyMediaCacheData['copy']['nameraw'];
+					$musikData['copy']['link'] = $_tool->links('music/cache/'.$copyMediaCacheData['copy']['name']);
+					$musikData['copy']['link'] = $_tool->links('music/cache/thumbnail/'.$copyMediaCacheData['copy']['thumbnail']);
+					die(print json_encode(array("return" => true, "data" => $musikData)));
+				}else if (isset($copyMediaCache['return'], $copyMediaCache['reason']) && $copyMediaCache['return'] == false && is_string($copyMediaCache['reason'])) {
+					die(print json_encode(array("return" => false, "reason" => $copyMediaCache['reason'])));
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else if ($action == "delete") {
+				if (isset($ObjRequest['file']) && is_array($ObjRequest['file']) && count($ObjRequest['file']) > 0) $musikFileArr = $ObjRequest['file']; else $musikFileArr = null;
+				if ($musikFileArr == null) {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+				$notifyArr = array();
+				foreach ($musikFileArr as $key => $musikFileArrThis) {
+					if (isset($musikFileArrThis['name']) && is_string($musikFileArrThis['name'])) $musikName = $musikFileArrThis['name']; else $musikName = null;
+					if (isset($musikFileArrThis['secret']) && is_string($musikFileArrThis['secret'])) $musikSecret = $musikFileArrThis['secret']; else $musikSecret = null;
+					if (isset($musikFileArrThis['verify']) && $musikFileArrThis['verify']) $musikVerify = $musikFileArrThis['verify']; else $musikVerify = null;
+					if (isset($musikVerify) && in_array($musikVerify, ["0", 0, "false", false])) {
+						$verifyValue = false;
+					}else if (isset($musikVerify) && in_array($musikVerify, ["1", 1, "true", true])) {
+						$verifyValue = true;
+					}else {
+						continue;
+					}
+					if ($musikName == null || $musikSecret == null) {
+						$notifyArr[] = array("return" => false, "reason" => "");
+					}
+					$deleteMediaFile = $_media->cache("music", array("guy" => $g_user['mode'], "user" => array("id" => $g_user['id']), "action" => "delete", "secret" => $musikSecret, "name" => $musikName, "verify" => $musikVerify));
+					if (isset($deleteMediaFile['return']) && $deleteMediaFile['return'] == true) {
+						$notifyArr[] = array("return" => true, "file" => $musikFileArrThis);
+					}else if (isset($deleteMediaFile['return'], $deleteMediaFile['reason']) && $deleteMediaFile['return'] == false) {
+						$notifyArr[] = array("return" => false, "file" => $musikFileArrThis, "reason" => $deleteMediaFile['reason']);
+					}else {
+						$notifyArr[] = array("return" => false, "file" => $musikFileArrThis, "reason" => "");
+					}
+				}
+				die(print json_encode(array("return" => true, "data" => $notifyArr)));
+			}else if ($action == "push") {
+				if (isset($ObjRequest['file']) && is_array($ObjRequest['file']) && count($ObjRequest['file']) > 0) $musikFileArr = $ObjRequest['file']; else $musikFileArr = null;
+				if ($musikFileArr == null) {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+				$notifyArr = array();
+				foreach ($musikFileArr as $key => $musikFileArrThis) {
+					if (isset($musikFileArrThis['name']) && is_string($musikFileArrThis['name'])) $musikName = $musikFileArrThis['name']; else $musikName = null;
+					if (isset($musikFileArrThis['secret']) && is_string($musikFileArrThis['secret'])) $musikSecret = $musikFileArrThis['secret']; else $musikSecret = null;
+					if ($musikName == null || $musikSecret == null) {
+						$notifyArr[] = array("return" => false, "reason" => "");
+					}
+					$deleteMediaFile = $_media->cache("music", array("guy" => $g_user['mode'], "user" => array("id" => $g_user['id']), "action" => "push", "secret" => $musikSecret, "name" => $musikName));
+					if (isset($deleteMediaFile['return']) && $deleteMediaFile['return'] == true) {
+						$notifyArr[] = array("return" => true, "file" => $musikFileArrThis);
+					}else if (isset($deleteMediaFile['return'], $deleteMediaFile['reason']) && $deleteMediaFile['return'] == false) {
+						$notifyArr[] = array("return" => false, "file" => $musikFileArrThis, "reason" => $deleteMediaFile['reason']);
+					}else {
+						$notifyArr[] = array("return" => false, "file" => $musikFileArrThis, "reason" => "");
+					}
+				}
+				die(print json_encode(array("return" => true, "data" => $notifyArr)));
+			}else {
+				die(print json_encode(array("return" => false, "reason" => "")));
+			}
+		}else if ($type == "info") {
+			if ($action == "get") {
+				die(print json_encode(array("return" => false)));
+			}else {
+				die(print json_encode(array("return" => false, "reason" => "")));
+			}
+		}else if ($type == "replay") {
+			if ($action == "add") {
+				if (isset($ObjRequest['label']) && is_string($ObjRequest['label'])) $label = $ObjRequest['label']; else $label = null;
+				if (isset($ObjRequest['value']) && (is_string($ObjRequest['value']) || is_numeric($ObjRequest['value']))) $value = $ObjRequest['value']; else $value = null;
+				if (isset($ObjRequest['at']) && (is_string($ObjRequest['at']) || is_numeric($ObjRequest['at']))) $at = $ObjRequest['at']; else $at = 0;
+				if (isset($ObjRequest['expires']) && (is_string($ObjRequest['expires']) || is_numeric($ObjRequest['expires']))) $expires = $ObjRequest['expires']; else $expires = 0;
+				if ($label == null || $value == null || $at == 0 || $expires == 0) {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+				$queryAction = $_media->replay("music", array("action" => "add", "label" => $label, "value" => $value, "at" => $at, "expires" => $expires));
+				if (isset($queryAction['return']) && $queryAction['return'] == true) {
+					die(print json_encode(array("return" => true)));
+				}else if (isset($queryAction['return'], $queryAction['reason']) && $queryAction['return'] == false && is_string($queryAction['reason'])) {
+					die(print json_encode(array("return" => false, "reason" => $queryAction['reason'])));
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else if ($action == "get") {
+				if (isset($ObjRequest['label']) && is_string($ObjRequest['label'])) $label = $ObjRequest['label']; else $label = null;
+				if (isset($ObjRequest['value']) && (is_string($ObjRequest['value']) || is_numeric($ObjRequest['value']))) $value = $ObjRequest['value']; else $value = null;
+				$queryAction = $_media->replay("music", array("action" => "get", "label" => $label, "value" => $value));
+				if (isset($queryAction['return'], $queryAction['count'], $queryAction['data']) && $queryAction['return'] == true) {
+					die(print json_encode(array("return" => true, "count" => $queryAction['count'], "data" => $queryAction['data'])));
+				}else if (isset($queryAction['return'], $queryAction['reason']) && $queryAction['return'] == false && is_string($queryAction['reason'])) {
+					die(print json_encode(array("return" => false, "reason" => $queryAction['reason'])));
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else if ($action == "delete") {
+				if (isset($ObjRequest['label']) && is_string($ObjRequest['label'])) $label = $ObjRequest['label']; else $label = null;
+				if (isset($ObjRequest['value']) && (is_string($ObjRequest['value']) || is_numeric($ObjRequest['value']))) $value = $ObjRequest['value']; else $value = null;
+				$queryAction = $_media->replay("music", array("action" => "delete", "label" => $label, "value" => $value));
+				if (isset($queryAction['return']) && $queryAction['return'] == true) {
+					die(print json_encode(array("return" => true)));
+				}else if (isset($queryAction['return'], $queryAction['reason']) && $queryAction['return'] == false) {
+					die(print json_encode(array("return" => false, "reason" => $queryAction['reason'])));
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else if ($action == "clean") {
+				$queryAction = $_media->replay("music", array("action" => "clean"));
+				if (isset($queryAction['return'], $queryAction['count'], $queryAction['data']) && $queryAction['return'] == true) {
+					die(print json_encode(array("return" => true, "count" => $queryAction['count'], "data" => $queryAction['data'])));
+				}else if (isset($queryAction['return'], $queryAction['reason']) && $queryAction['return'] == false && is_string($queryAction['reason'])) {
+					die(print json_encode(array("return" => false, "reason" => $queryAction['reason'])));
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else {
+				die(print json_encode(array("return" => false, "reason" => "")));
+			}
+		}else {
+			die(print json_encode(array("return" => false, "reason" => "")));
+		}
+	}else if ($port == "videos" && $token == $g_client['token']['action']['videos']) {
+		if ($type == "cache") {
+			if ($action == "add") {
+				$fileUpload = $_FILES["file"];
+				$fileArr = $_tool->resetFileUpload($fileUpload);
+				$fileReturnArr = array();
+				$fileSecret = isset($ObjRequest['secret']) && is_string($ObjRequest['secret']) ? $ObjRequest['secret'] : null;
+				foreach ($fileArr as $key => $fileArrThis) {
+					$addMediaCache = $_media->cache("videos", array("guy" => $g_user['mode'], "user" => array("id" => $g_user['id']), "action" => "add", "file" => $fileArrThis));
+					if (isset($addMediaCache['return'], $addMediaCache['data']) && $addMediaCache['return'] == true) {
+						$addMediaCacheData = $addMediaCache['data'];
+						$fileReturnArr[$key] = array("type" => "videos", "local" => "cache", "verify" => "false");
+						$fileReturnArr[$key]['secret'] = $addMediaCacheData['secret'];
+						$fileReturnArr[$key]['name'] = $addMediaCacheData['name'];
+						$fileReturnArr[$key]['nameraw'] = $addMediaCacheData['nameraw'];
+						$fileReturnArr[$key]['mime'] = $addMediaCacheData['mime'];
+						$fileReturnArr[$key]['link'] = $_tool->links('videos/cache/'.$addMediaCacheData['name']);
+						$fileReturnArr[$key]['thumbnail'] = $_tool->links('videos/cache/thumbnail/'.$addMediaCacheData['thumbnail']);
+						$fileReturnArr[$key]['duration'] = $addMediaCacheData['duration'];
+					}else {
+						$fileReturnArr[$key] = array_merge($addMediaCache, array("secret" => $fileSecret));
+					}
+				}
+				die(print json_encode(array("return" => true, "data" => $fileReturnArr)));
+			}else if ($action == "copy") {
+				if (isset($ObjRequest['secret']) && is_string($ObjRequest['secret'])) $vioSecret = $ObjRequest['secret']; else $vioSecret = null;
+				if (isset($ObjRequest['name']) && is_string($ObjRequest['name'])) $vioName = $ObjRequest['name']; else $vioName = null;
+				if ($vioSecret == null || $vioName == null) {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+				$copyMediaCache = $_media->cache("videos", array("guy" => $g_user['mode'], "user" => array("id" => $g_user['id']), "action" => "copy", "secret" => $vioSecret, "name" => $vioName));
+				if (isset($copyMediaCache['return'], $copyMediaCache['data']) && $copyMediaCache['return'] == true){
+					$copyMediaCacheData = $copyMediaCache['data'];
+					$vioData['original']['secret'] = $copyMediaCacheData['original']['secret'];
+					$vioData['original']['name'] = $copyMediaCacheData['original']['name'];
+					$vioData['original']['nameraw'] = $copyMediaCacheData['original']['nameraw'];
+					$vioData['original']['link'] = $_tool->links('videos/cache/'.$copyMediaCacheData['original']['name']);
+					$vioData['original']['link'] = $_tool->links('videos/cache/thumbnail/'.$copyMediaCacheData['original']['thumbnail']);
+					$vioData['copy']['secret'] = $copyMediaCacheData['copy']['secret'];
+					$vioData['copy']['name'] = $copyMediaCacheData['copy']['name'];
+					$vioData['copy']['nameraw'] = $copyMediaCacheData['copy']['nameraw'];
+					$vioData['copy']['link'] = $_tool->links('videos/cache/'.$copyMediaCacheData['copy']['name']);
+					$vioData['copy']['link'] = $_tool->links('videos/cache/thumbnail/'.$copyMediaCacheData['copy']['thumbnail']);
+					die(print json_encode(array("return" => true, "data" => $vioData)));
+				}else if (isset($copyMediaCache['return'], $copyMediaCache['reason']) && $copyMediaCache['return'] == false && is_string($copyMediaCache['reason'])) {
+					die(print json_encode(array("return" => false, "reason" => $copyMediaCache['reason'])));
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else if ($action == "delete") {
+				if (isset($ObjRequest['file']) && is_array($ObjRequest['file']) && count($ObjRequest['file']) > 0) $vioFileArr = $ObjRequest['file']; else $vioFileArr = null;
+				if ($vioFileArr == null) {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+				$notifyArr = array();
+				foreach ($vioFileArr as $key => $vioFileArrThis) {
+					if (isset($vioFileArrThis['name']) && is_string($vioFileArrThis['name'])) $vioName = $vioFileArrThis['name']; else $vioName = null;
+					if (isset($vioFileArrThis['secret']) && is_string($vioFileArrThis['secret'])) $vioSecret = $vioFileArrThis['secret']; else $vioSecret = null;
+					if (isset($vioFileArrThis['verify']) && $vioFileArrThis['verify']) $vioVerify = $vioFileArrThis['verify']; else $vioVerify = null;
+					if (isset($vioVerify) && in_array($vioVerify, ["0", 0, "false", false])) {
+						$verifyValue = false;
+					}else if (isset($vioVerify) && in_array($vioVerify, ["1", 1, "true", true])) {
+						$verifyValue = true;
+					}else {
+						continue;
+					}
+					if ($vioName == null || $vioSecret == null) {
+						$notifyArr[] = array("return" => false, "reason" => "");
+					}
+					$deleteMediaFile = $_media->cache("videos", array("guy" => $g_user['mode'], "user" => array("id" => $g_user['id']), "action" => "delete", "secret" => $vioSecret, "name" => $vioName, "verify" => $vioVerify));
+					if (isset($deleteMediaFile['return']) && $deleteMediaFile['return'] == true) {
+						$notifyArr[] = array("return" => true, "file" => $vioFileArrThis);
+					}else if (isset($deleteMediaFile['return'], $deleteMediaFile['reason']) && $deleteMediaFile['return'] == false) {
+						$notifyArr[] = array("return" => false, "file" => $vioFileArrThis, "reason" => $deleteMediaFile['reason']);
+					}else {
+						$notifyArr[] = array("return" => false, "file" => $vioFileArrThis, "reason" => "");
+					}
+				}
+				die(print json_encode(array("return" => true, "data" => $notifyArr)));
+			}else if ($action == "push") {
+				if (isset($ObjRequest['file']) && is_array($ObjRequest['file']) && count($ObjRequest['file']) > 0) $vioFileArr = $ObjRequest['file']; else $vioFileArr = null;
+				if ($vioFileArr == null) {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+				$notifyArr = array();
+				foreach ($vioFileArr as $key => $vioFileArrThis) {
+					if (isset($vioFileArrThis['name']) && is_string($vioFileArrThis['name'])) $vioName = $vioFileArrThis['name']; else $vioName = null;
+					if (isset($vioFileArrThis['secret']) && is_string($vioFileArrThis['secret'])) $vioSecret = $vioFileArrThis['secret']; else $vioSecret = null;
+					if ($vioName == null || $vioSecret == null) {
+						$notifyArr[] = array("return" => false, "reason" => "");
+					}
+					$deleteMediaFile = $_media->cache("videos", array("guy" => $g_user['mode'], "user" => array("id" => $g_user['id']), "action" => "push", "secret" => $vioSecret, "name" => $vioName));
+					if (isset($deleteMediaFile['return']) && $deleteMediaFile['return'] == true) {
+						$notifyArr[] = array("return" => true, "file" => $vioFileArrThis);
+					}else if (isset($deleteMediaFile['return'], $deleteMediaFile['reason']) && $deleteMediaFile['return'] == false) {
+						$notifyArr[] = array("return" => false, "file" => $vioFileArrThis, "reason" => $deleteMediaFile['reason']);
+					}else {
+						$notifyArr[] = array("return" => false, "file" => $vioFileArrThis, "reason" => "");
+					}
+				}
+				die(print json_encode(array("return" => true, "data" => $notifyArr)));
+			}else {
+				die(print json_encode(array("return" => false, "reason" => "")));
+			}
+		}else if ($type == "info") {
+			if ($action == "get") {
+				die(print json_encode(array("return" => true)));
+			}else {
+				die(print json_encode(array("return" => false, "reason" => "")));
+			}
+		}else if ($type == "pointtag") {
+			if ($action == "add") {
+				$videoDisplay = isset($ObjRequest['display']) && is_string($ObjRequest['display']) ? $ObjRequest['display'] : null;
+				$pointtagTime = isset($ObjRequest['point']) && (is_string($ObjRequest['point']) || is_numeric($ObjRequest['point'])) ? $ObjRequest['point'] : null;
+				$pointtagLength = isset($ObjRequest['length']) && (is_string($ObjRequest['length']) || is_numeric($ObjRequest['length'])) ? $ObjRequest['length'] : 3;
+				$pointtagSticker = isset($ObjRequest['sticker']) && is_string($ObjRequest['sticker']) ? $ObjRequest['sticker'] : null;
+				$pointtagContent = isset($ObjRequest['content']) && is_string($ObjRequest['content']) ? $ObjRequest['content'] : null;
+				if ($pointtagTime == null || $pointtagLength == null || ($pointtagSticker == null && $pointtagContent == null)) {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+				if ($videoDisplay == null && !$_tool->isBase64($videoDisplay)) {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}else {
+					//. $videoDisplay = $_tool->hash('decode', $videoDisplay, $_parameter->get('hash_videos_pointtag_check'));
+				}
+				$getVideos = $_media->data("videos", array("guy" => $g_user['mode'], "action" => "get", "rows" => ['id', 'author.type', 'author.id', 'private.comment'], "label" => "display", "value" => $videoDisplay));
+				if (isset($getVideos['return'], $getVideos['data'], $getVideos['data'][0]) && $getVideos['return'] == true) {
+					$tagAllow = false;
+					if (isset($getVideos['data'][0]['author'], $getVideos['data'][0]['author']['type'], $getVideos['data'][0]['author']['id'])) {
+						$guyVideos = $_media->guy(array("guy" => $g_user['mode'], "author" => $getVideos['data'][0]['author']));
+						if (isset($guyVideos['return'], $guyVideos['guy']) && $guyVideos['return'] == true) {
+							if (isset($getVideos['data'][0]['private'], $getVideos['data'][0]['private']['comment'])) {
+								$guyPrivateComment = $guyVideos['guy'];
+								if ($guyPrivateComment <= $getVideos['data'][0]['private']['comment']) {
+									$tagAllow = true;
+								}
+							}
+						}
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+					if (isset($tagAllow) && $tagAllow === true) {
+						$addPointtag = $_media->pointtag("videos", array("guy" => $g_user['mode'], "action" => "add", "id" => $getVideos['data'][0]['id'], "point" => $pointtagTime, "length" => $pointtagLength, "sticker" => $pointtagSticker, "content" => $pointtagContent));
+						if (isset($addPointtag['return'], $addPointtag['data']) && $addPointtag['return'] == true) {
+							die(print json_encode(array("return" => true, "x" => $addPointtag)));
+						}else if (isset($addPointtag['return'], $addPointtag['reason']) && $addPointtag['return'] == false) {
+							die(print json_encode(array("return" => false, "reason" => $addPointtag['reason'])));
+						}else {
+							die(print json_encode(array("return" => false, "reason" => "")));
+						}
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+				}else if (isset($getVideos['return'], $getVideos['reason']) && $getVideos['return'] == false) {
+					die(print json_encode(array("return" => false, "reason" => $getVideos['reason'])));
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else if ($action == "check") {
+				$videoDisplay = isset($ObjRequest['display']) && is_string($ObjRequest['display']) ? $ObjRequest['display'] : null;
+				if ($videoDisplay == null && !$_tool->isBase64($videoDisplay)) {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}else {
+					//. $videoDisplay = $_tool->hash('decode', $videoDisplay, $_parameter->get('hash_videos_pointtag_check'));
+				}
+				$getVideos = $_media->data("videos", array("guy" => $g_user['mode'], "action" => "get", "rows" => ['author.type', 'author.id', 'private.comment'], "label" => "display", "value" => $videoDisplay));
+				if (isset($getVideos['return'], $getVideos['data'], $getVideos['data'][0]) && $getVideos['return'] == true) {
+					$tagAllow = false;
+					if (isset($getVideos['data'][0]['author'], $getVideos['data'][0]['author']['type'], $getVideos['data'][0]['author']['id'])) {
+						$guyVideos = $_media->guy(array("guy" => $g_user['mode'], "author" => $getVideos['data'][0]['author']));
+						if (isset($guyVideos['return'], $guyVideos['guy']) && $guyVideos['return'] == true) {
+							if (isset($getVideos['data'][0]['private'], $getVideos['data'][0]['private']['comment'])) {
+								$guyPrivateComment = $guyVideos['guy'];
+								if ($guyPrivateComment <= $getVideos['data'][0]['private']['comment']) {
+									$tagAllow = true;
+								}
+							}
+						}
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+					$dataArr = array("allow" => $tagAllow);
+					die(print json_encode(array("return" => true, "data" => $dataArr)));
+				}else if (isset($getVideos['return'], $getVideos['reason']) && $getVideos['return'] == false) {
+					die(print json_encode(array("return" => false, "reason" => $getVideos['reason'])));
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else if ($action == "get") {
+				$videoDisplay = isset($ObjRequest['display']) && is_string($ObjRequest['display']) ? $ObjRequest['display'] : null;
+				$pointtagExcept = isset($ObjRequest['except']) && is_array($ObjRequest['except']) && count($ObjRequest['except']) > 0 ? $ObjRequest['except'] : null;
+				if ($videoDisplay == null && !$_tool->isBase64($videoDisplay)) {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}else {
+					//. $videoDisplay = $_tool->hash('decode', $videoDisplay, $_parameter->get('hash_videos_pointtag_check'));
+				}
+				$getVideos = $_media->data("videos", array("guy" => $g_user['mode'], "action" => "get", "rows" => ['id'], "label" => "display", "value" => $videoDisplay));
+				if (isset($getVideos['return'], $getVideos['data'], $getVideos['data'][0], $getVideos['data'][0]['id']) && $getVideos['return'] == true) {
+					$conditionArr = array(
+						"videos.id" => $getVideos['data'][0]['id']
+					);
+					$getPointtag = $_media->pointtag("videos", array("guy" => $g_user['mode'], "action" => "get", "condition" => $conditionArr, "except" => $pointtagExcept));
+					if (isset($getPointtag['return'], $getPointtag['data']) && $getPointtag['return'] == true) {
+						foreach ($getPointtag['data'] as $i => $pointtagThis) {
+							if (isset($pointtagThis['guy'], $pointtagThis['guy']['type'], $pointtagThis['guy']['id'])) {
+								if ($pointtagThis['guy']['type'] == "user") {
+									$getGuyData = $_user->profile(array("action" => "get", "rows" => ["fullname", "username", "link", "avatar.small"], "label" => "id", "value" => $pointtagThis['guy']['id'], "limit" => "LIMIT 1"));
+									if (isset($getGuyData['return'], $getGuyData['data'][0]) && $getGuyData['return'] == true) {
+										$getPointtag['data'][$i]['guy']['name'] = $getGuyData['data'][0]['fullname'];
+										$getPointtag['data'][$i]['guy']['tag'] = $getGuyData['data'][0]['username'];
+										$getPointtag['data'][$i]['guy']['avatar'] = $getGuyData['data'][0]['avatar.small'];
+										$getPointtag['data'][$i]['guy']['link'] = $getGuyData['data'][0]['link'];
+									}
+								}
+							}
+						}
+						$dataArr = $getPointtag['data'];
+						die(print json_encode(array("return" => true, "data" => $dataArr)));
+					}else if (isset($getPointtag['return'], $getPointtag['reason']) && $getPointtag['return'] == false) {
+						die(print json_encode(array("return" => false, "reason" => $getPointtag['reason'])));
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+				}else if (isset($getVideos['return'], $getVideos['reason']) && $getVideos['return'] == false) {
+					die(print json_encode(array("return" => false, "reason" => $getVideos['reason'])));
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else {
+				die(print json_encode(array("return" => false, "reason" => "")));
+			}
+		}else if ($type == "replay") {
+			if ($action == "add") {
+				if (isset($ObjRequest['label']) && is_string($ObjRequest['label'])) $label = $ObjRequest['label']; else $label = null;
+				if (isset($ObjRequest['value']) && (is_string($ObjRequest['value']) || is_numeric($ObjRequest['value']))) $value = $ObjRequest['value']; else $value = null;
+				if (isset($ObjRequest['at']) && (is_string($ObjRequest['at']) || is_numeric($ObjRequest['at']))) $at = $ObjRequest['at']; else $at = 0;
+				if (isset($ObjRequest['expires']) && (is_string($ObjRequest['expires']) || is_numeric($ObjRequest['expires']))) $expires = $ObjRequest['expires']; else $expires = 0;
+				if ($label == null || $value == null || $at == 0 || $expires == 0) {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+				$queryAction = $_media->replay("videos", array("action" => "add", "label" => $label, "value" => $value, "at" => $at, "expires" => $expires));
+				if (isset($queryAction['return']) && $queryAction['return'] == true) {
+					die(print json_encode(array("return" => true)));
+				}else if (isset($queryAction['return'], $queryAction['reason']) && $queryAction['return'] == false && is_string($queryAction['reason'])) {
+					die(print json_encode(array("return" => false, "reason" => $queryAction['reason'])));
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else if ($action == "get") {
+				if (isset($ObjRequest['label']) && is_string($ObjRequest['label'])) $label = $ObjRequest['label']; else $label = null;
+				if (isset($ObjRequest['value']) && (is_string($ObjRequest['value']) || is_numeric($ObjRequest['value']))) $value = $ObjRequest['value']; else $value = null;
+				$queryAction = $_media->replay("videos", array("action" => "get", "label" => $label, "value" => $value));
+				if (isset($queryAction['return'], $queryAction['count'], $queryAction['data']) && $queryAction['return'] == true) {
+					die(print json_encode(array("return" => true, "count" => $queryAction['count'], "data" => $queryAction['data'])));
+				}else if (isset($queryAction['return'], $queryAction['reason']) && $queryAction['return'] == false && is_string($queryAction['reason'])) {
+					die(print json_encode(array("return" => false, "reason" => $queryAction['reason'])));
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else if ($action == "delete") {
+				if (isset($ObjRequest['label']) && is_string($ObjRequest['label'])) $label = $ObjRequest['label']; else $label = null;
+				if (isset($ObjRequest['value']) && (is_string($ObjRequest['value']) || is_numeric($ObjRequest['value']))) $value = $ObjRequest['value']; else $value = null;
+				$queryAction = $_media->replay("videos", array("action" => "delete", "label" => $label, "value" => $value));
+				if (isset($queryAction['return']) && $queryAction['return'] == true) {
+					die(print json_encode(array("return" => true)));
+				}else if (isset($queryAction['return'], $queryAction['reason']) && $queryAction['return'] == false) {
+					die(print json_encode(array("return" => false, "reason" => $queryAction['reason'])));
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else if ($action == "clean") {
+				$queryAction = $_media->replay("videos", array("action" => "clean"));
+				if (isset($queryAction['return'], $queryAction['count'], $queryAction['data']) && $queryAction['return'] == true) {
+					die(print json_encode(array("return" => true, "count" => $queryAction['count'], "data" => $queryAction['data'])));
+				}else if (isset($queryAction['return'], $queryAction['reason']) && $queryAction['return'] == false && is_string($queryAction['reason'])) {
+					die(print json_encode(array("return" => false, "reason" => $queryAction['reason'])));
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else {
+				die(print json_encode(array("return" => false, "reason" => "")));
+			}
+		}else {
+			die(print json_encode(array("return" => false, "reason" => "")));
+		}
+	}else if ($port == "cache" && $token == $g_client['token']['action']['cache']) {
+		//.
+	}else if ($port == "feed" && $token == $g_client['token']['action']['feed']) {
+		if ($type == "status") {
+			if (in_array($action, ["add", "upload"])) {
+				if (isset($ObjRequest['type']) && is_string($ObjRequest['type'])) $statusType = $ObjRequest['type']; else $statusType = null;
+				if (isset($ObjRequest['content']) && is_string($ObjRequest['content'])) $statusContent = $ObjRequest['content']; else $statusContent = null;
+				if (isset($ObjRequest['media']) && is_array($ObjRequest['media'])) $statusMedia = $ObjRequest['media']; else $statusMedia = null;
+				if (isset($ObjRequest['push']) && is_array($ObjRequest['push'])) $statusPush = $ObjRequest['push']; else $statusPush = null;
+				if (isset($ObjRequest['private']) && is_array($ObjRequest['private'])) $statusPrivate = $ObjRequest['private']; else $statusPrivate = null;
+				if ($statusType == null) {
+					die(print json_encode(array("return" => false, "reason" => "4")));
+				}
+				$statusAddOptions = array(
+					"type" => $statusType,
+					"content" => $statusContent,
+					"media" => $statusMedia,
+					"private" => $statusPrivate
+				);
+				if ($statusPush != null) {
+					if (isset($statusPush['mood'])) $statusAddOptions['mood'] = $statusPush['mood']; else $statusAddOptions['mood'] = null;
+					if (isset($statusPush['places'])) $statusAddOptions['places'] = $statusPush['places']; else $statusAddOptions['places'] = null;
+					if (isset($statusPush['usertag'])) $statusAddOptions['usertag'] = $statusPush['usertag']; else $statusAddOptions['usertag'] = null;
+					if (isset($statusPush['link'])) $statusAddOptions['link'] = $statusPush['link']; else $statusAddOptions['link'] = null;
+					if (isset($statusPush['share'])) $statusAddOptions['share'] = $statusPush['share']; else $statusAddOptions['share'] = null;
+				}
+				//die(print json_encode(array("return" => false, "reason" => $statusAddOptions)));
+				$statusRequest = $_feed->status_add(array_merge(array("guy" => array("type" => $g_user['mode']['type'], "id" => $g_user['mode']['id']), "user" => array("id" => $g_user['id'])), $statusAddOptions));
+				if (isset($statusRequest['return']) && $statusRequest['return'] == true) {
+					die(print json_encode(array("return" => true)));
+				}else if (isset($statusRequest['reason'], $statusRequest['return']) && $statusRequest['return'] == false) {
+					die(print json_encode(array("return" => false, "reason" => $statusRequest['reason'])));
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else if (in_array($action, ["newcheck"])) {
+				$listOptions['method'] = isset($ObjRequest['method']) && is_string($ObjRequest['method']) ? $ObjRequest['method'] : null;
+				$listOptions['sort'] = isset($ObjRequest['sort']) && is_string($ObjRequest['sort']) ? $ObjRequest['sort'] : null;
+				$listOptions['order'] = isset($ObjRequest['order']) && is_string($ObjRequest['order']) ? $ObjRequest['order'] : null;
+				$listOptions['type'] = isset($ObjRequest['type']) && is_string($ObjRequest['type']) ? $ObjRequest['type'] : null;
+				$listOptions['logs'] = isset($ObjRequest['logs']) && (is_string($ObjRequest['logs']) || is_numeric($ObjRequest['logs'])) ? $ObjRequest['logs'] : null;
+				$listOptions['except']['status'] = isset($ObjRequest['except'], $ObjRequest['except']['status']) && is_array($ObjRequest['except']['status']) && count($ObjRequest['except']['status']) > 0 ? $ObjRequest['except']['status'] : null;
+				$listOptions['except']['logs'] = isset($ObjRequest['except'], $ObjRequest['except']['logs']) && is_array($ObjRequest['except']['logs']) && count($ObjRequest['except']['logs']) > 0 ? $ObjRequest['except']['logs'] : null;
+				$listOptions['limit'] = isset($ObjRequest['limit']) && is_numeric($ObjRequest['limit']) ? $ObjRequest['limit'] : null;
+				if (!in_array($listOptions['type'], ["country", "family", "friends", "general", "hashtag", "live", "nearby", "status", "time"])) {
+					die(print json_encode(array("return" => false, "reason" => "2fdg3")));
+				}else if (!in_array($listOptions['sort'], [">", ">=", "=", "<", "<="])) {
+					die(print json_encode(array("return" => false, "reason" => "5dsg34")));
+				}else if (!in_array($listOptions['order'], [null, "old", "new"])) {
+					die(print json_encode(array("return" => false, "reason" => "ghyj")));
+				}else if (!in_array($listOptions['method'], ["auto", "action", "new"])) {
+					die(print json_encode(array("return" => false, "reason" => "yrty")));
+				}else if ($listOptions['logs'] == null || !preg_match("/^([0-9]+)$/", $listOptions['logs'])) {
+					die(print json_encode(array("return" => false, "reason" => "hrthr")));
+				}
+				if ($listOptions['limit'] == null) {
+					if ($listOptions['limit'] == "old") {
+						$listOptions['limit'] = 5;
+					}
+				}
+				$listOptions['guy'] = $g_user['mode'];
+				$listOptions['null'] = true;
+				$getList = $_feed->status_list($listOptions);
+				if (isset($getList['return'], $getList['count']) && $getList['return'] == true) {
+					die(print json_encode(array("return" => true, "count" => $getList['count'])));
+				}else if (isset($getList['return'], $getList['reason']) && $getList['return'] == false) {
+					die(print json_encode(array("return" => false, "reason" => "asd".$getList['reason'])));
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "sx")));
+				}
+			}else if (in_array($action, ["get", "load"])) {
+				$listOptions['method'] = isset($ObjRequest['method']) && is_string($ObjRequest['method']) ? $ObjRequest['method'] : null;
+				$listOptions['sort'] = isset($ObjRequest['sort']) && is_string($ObjRequest['sort']) ? $ObjRequest['sort'] : null;
+				$listOptions['order'] = isset($ObjRequest['order']) && is_string($ObjRequest['order']) ? $ObjRequest['order'] : null;
+				$listOptions['type'] = isset($ObjRequest['type']) && is_string($ObjRequest['type']) ? $ObjRequest['type'] : null;
+				$listOptions['logs'] = isset($ObjRequest['logs']) && (is_string($ObjRequest['logs']) || is_numeric($ObjRequest['logs'])) ? $ObjRequest['logs'] : null;
+				$listOptions['except']['status'] = isset($ObjRequest['except'], $ObjRequest['except']['status']) && is_array($ObjRequest['except']['status']) && count($ObjRequest['except']['status']) > 0 ? $ObjRequest['except']['status'] : null;
+				$listOptions['except']['logs'] = isset($ObjRequest['except'], $ObjRequest['except']['logs']) && is_array($ObjRequest['except']['logs']) && count($ObjRequest['except']['logs']) > 0 ? $ObjRequest['except']['logs'] : null;
+				$listOptions['limit'] = isset($ObjRequest['limit']) && is_numeric($ObjRequest['limit']) ? $ObjRequest['limit'] : null;
+				if (!in_array($listOptions['type'], ["country", "family", "friends", "general", "hashtag", "live", "nearby", "status", "time"])) {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}else if (!in_array($listOptions['sort'], [">", ">=", "=", "<", "<="])) {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}else if (!in_array($listOptions['order'], [null, "old", "new"])) {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}else if (!in_array($listOptions['method'], ["auto", "action", "new"])) {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}else if ($listOptions['logs'] == null || !preg_match("/^([0-9]+)$/", $listOptions['logs'])) {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+				if ($listOptions['limit'] == null) {
+					if ($listOptions['limit'] == "old") {
+						$listOptions['limit'] = 5;
+					}
+				}
+				$listOptions['guy'] = $g_user['mode'];
+				$getList = $_feed->status_list($listOptions);
+				if (isset($getList['return'], $getList['count'], $getList['data']) && $getList['return'] == true) {
+					$listStatusArr = array();
+					foreach ($getList['data'] as $listLabel => $listValue) {
+						$listStatusArr[] = array_merge($listValue, array("media" => true, "comment" => true));
+					}
+					$statusFetch = $_feed->status_fetch(array("guy" => $g_user['mode'], "list" =>  $listStatusArr));
+					if (isset($statusFetch['return'], $statusFetch['count'], $statusFetch['data']) && $statusFetch['return'] == true) {
+						die(print json_encode(array("return" => true, "count" => $statusFetch['count'], "data" => $statusFetch['data'])));
+					}else if (isset($statusFetch['return'], $statusFetch['reason']) && $statusFetch['return'] == false) {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+				}else if (isset($getList['return'], $getList['reason']) && $getList['return'] == false) {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else if ($action == "block") {
+				$thingsArr = isset($ObjRequest['things']) && is_array($ObjRequest['things']) && count($ObjRequest['things']) > 0 ? $ObjRequest['things'] : null;
+				if ($thingsArr == null) {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+				$dataArr = array();
+				foreach ($thingsArr as $i => $thingsThis) {
+					if (!isset($thingsThis['type']) || !isset($thingsThis['id'])) {
+						continue;
+					}
+					$addBlockOptions = array("guy" => $g_user['mode'], "action" => "add", "things" => $thingsThis);
+					$addBlockAction = $_feed->status_block($addBlockOptions);
+					if (isset($addBlockAction, $addBlockAction['return']) && $addBlockAction['return'] == true) {
+						$dataArr[] = array_merge($thingsThis, array("return" => true));
+					}else if (isset($addBlockAction, $addBlockAction['return'], $addBlockAction['reason']) && $addBlockAction['return'] == false) {
+						$dataArr[] = array_merge($thingsThis, array("return" => false, "reason" => $addBlockAction['reason']));
+					}else {
+						$dataArr[] = array_merge($thingsThis, array("return" => false, "reason" => ""));
+					}
+				}
+				$countArr = count($dataArr);
+				die(print json_encode(array("return" => true, "count" => $countArr, "data" => $dataArr)));
+			}else if ($action == "edit" || $action == "change") {
+				if (isset($ObjRequest['id']) && (is_string($ObjRequest['id']) || is_numeric($ObjRequest['id']))) $statusId = $ObjRequest['id']; else $statusId = null;
+				if (isset($ObjRequest['rows']) && is_array($ObjRequest['rows']) && count($ObjRequest['rows']) > 0) $statusRows = $ObjRequest['rows']; else $statusRows = null;
+				if ($statusId == null || $statusRows == null) {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+				foreach ($statusRows as $key => $statusRowsThis) {
+					if (preg_match("/^(private)+/", $key)) {
+						$statusRows[preg_replace("/(\-\>)/", ".", $key)] = $statusRowsThis;
+						unset($statusRows[$key]);
+						if (!preg_match("/([0-9]+)/", $statusRowsThis)) {
+							unset($statusRows[$key]);
+						}
+					}
+				}
+				$statusEditOptions = array("rows" => $statusRows, "label" => "id", "value" => $statusId);
+				$editRequest = $_feed->status_edit(array_merge(array("author" => array("type" => $g_user['mode']['type'], "id" => $g_user['mode']['id'])), $statusEditOptions));
+				if (isset($editRequest['return'], $editRequest['notify']) && $editRequest['return'] == true) {
+					die(print json_encode(array("return" => true, "notify" => $editRequest['notify'])));
+				}else if (isset($editRequest['reason']) && $editRequest['return'] == false) {
+					die(print json_encode(array("return" => false, "reason" => $editRequest['reason'])));
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else if ($action == "remove" || $action == "delete") {
+				if (isset($ObjRequest['id']) && is_array($ObjRequest['id']) && count($ObjRequest['id']) > 0) $idArr = $ObjRequest['id']; else $idArr = null;
+				if (isset($ObjRequest['id']) && (is_string($ObjRequest['id']) || is_numeric($ObjRequest['id']))) $idString = $ObjRequest['id']; else $idString = null;
+				if ($idString == null && $idArr == null) {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+				if ($idString != null) {
+					$idArr = array();
+					$idArr[] = $idString;
+				}
+				$notifyArr = array();
+				foreach ($idArr as $key => $idArrThis) {
+					if ((is_string($idArrThis) || is_numeric($idArrThis)) && $idArrThis > 0) {
+						$statusDeleteOptions = array(
+							"label" => "id",
+							"value" => $idArrThis
+						);
+						$deleteRequest = $_feed->status_remove(array_merge(array("user" => array("id" => $g_user['id']), "guy" => array("type" => $g_user['mode']['type'], "id" => $g_user['mode']['id'])), $statusDeleteOptions));
+						if (isset($deleteRequest['return'], $deleteRequest['notify']) && $deleteRequest['return'] == true) {
+							$notifyArr[] = array("return" => true, "notify" => $deleteRequest['notify']);
+						}else if (isset($deleteRequest['reason']) && $deleteRequest['return'] == false) {
+							$notifyArr[] = array("return" => false, "reason" => $deleteRequest['reason']);
+						}else {
+							$notifyArr[] = array("return" => false, "reason" => "");
+						}
+					}else {
+						continue;
+					}
+				}
+				foreach ($notifyArr as $key => $notifyThis) {
+					if ((isset($notifyThis['return']) && $notifyThis['return'] != true) || !isset($notifyThis['notify'])) {
+						unset($notifyArr[$key]);
+					}
+				}
+				$newNotifyArr = array();
+				foreach ($notifyArr as $key => $notifyThis) {
+					$newNotifyArr = array_merge($newNotifyArr, $notifyThis['notify']);
+				}
+				die(print json_encode(array("return" => true, "data" => $newNotifyArr)));
+			}else if ($action == "stats" || $action == "statistic") {
+				if (isset($ObjRequest['id']) && is_array($ObjRequest['id'])) $statusIdArr = $ObjRequest['id']; else $statusIdArr = null;
+				if (isset($ObjRequest['rows']) && is_array($ObjRequest['rows'])) $statusRowsArr = $ObjRequest['rows']; else $statusRowsArr = null;
+				if (isset($ObjRequest['type']) && is_array($ObjRequest['type'])) $statusTypeArr = $ObjRequest['type']; else $statusTypeArr = null;
+				if ($statusIdArr == null || $statusRowsArr == null || $statusTypeArr == null) {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}else {
+					$notifyArr = array();
+					foreach ($statusIdArr as $key => $statusIdThis) {
+						if (!isset($statusRowsArr[$key]) || !isset($statusTypeArr[$key])) {
+							$notifyArr[] = array("id" => $statusIdThis, "return" => false, "reason" => "");
+							continue;
+						}else {
+							$statusRowsThis = $statusRowsArr[$key];
+							$statusTypeThis = $statusTypeArr[$key];
+						}
+						$getStatsFeedstatusOptions = array("id" => $statusIdThis, "rows" => $statusRowsThis, "type" => $statusTypeThis);
+						$getStatsFeedstatus = $_feed->status_stats($getStatsFeedstatusOptions);
+						if (isset($getStatsFeedstatus['return'], $getStatsFeedstatus['stats'], $getStatsFeedstatus['list']) && $getStatsFeedstatus['return'] == true) {
+							$notifyArr[] = array("id" => $statusIdThis, "return" => true, "stats" => $getStatsFeedstatus['stats'], "list" => $getStatsFeedstatus['list']);
+						}else if (isset($getStatsFeedstatus['return'], $getStatsFeedstatus['reason']) && $getStatsFeedstatus['return'] == false) {
+							$notifyArr[] = array("id" => $statusIdThis, "return" => false, "reason" => $getStatsFeedstatus['reason']);
+						}else {
+							$notifyArr[] = array("id" => $statusIdThis, "return" => false, "reason" => "");
+						}
+					}
+					die(print json_encode(array("return" => true, "data" => $notifyArr)));
+				}
+			}else if (in_array($action, ["favorite", "unfavorite"])) {
+				$insideArr = isset($ObjRequest['inside']) && is_array($ObjRequest['inside']) && count($ObjRequest['inside']) > 0 ? $ObjRequest['inside'] : null;
+				if ($insideArr == null) {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+				$dataArr = array();
+				foreach ($insideArr as $i => $insideThis) {
+					if (!isset($insideThis['type']) || !isset($insideThis['id'])) {
+						continue;
+					}
+					$useFavoriteOptions = array("guy" => $g_user['mode'], "action" => "add", "type" => $action, "inside" => $insideThis);
+					$useFavoriteAction = $_feed->status_favorite($useFavoriteOptions);
+					if (isset($useFavoriteAction, $useFavoriteAction['return']) && $useFavoriteAction['return'] == true) {
+						$dataArr[] = array("return" => true, "inside" => $insideThis);
+					}else if (isset($useFavoriteAction, $useFavoriteAction['return'], $useFavoriteAction['reason']) && $useFavoriteAction['return'] == false) {
+						$dataArr[] = array("return" => false, "inside" => $insideThis, "reason" => $useFavoriteAction['reason']);
+					}else {
+						$dataArr[] = array("return" => false, "inside" => $insideThis, "reason" => "");
+					}
+				}
+				$countArr = count($dataArr);
+				die(print json_encode(array("return" => true, "count" => $countArr, "data" => $dataArr)));
+			}else if (in_array($action, ["follow", "unfollow"])) {
+				$insideArr = isset($ObjRequest['inside']) && is_array($ObjRequest['inside']) && count($ObjRequest['inside']) > 0 ? $ObjRequest['inside'] : null;
+				if ($insideArr == null) {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+				$dataArr = array();
+				foreach ($insideArr as $i => $insideThis) {
+					if (!isset($insideThis['type']) || !isset($insideThis['id'])) {
+						continue;
+					}
+					$useFollowOptions = array("guy" => $g_user['mode'], "action" => "add", "type" => $action, "inside" => $insideThis);
+					$useFollowAction = $_feed->status_follow($useFollowOptions);
+					if (isset($useFollowAction, $useFollowAction['return']) && $useFollowAction['return'] == true) {
+						$dataArr[] = array("return" => true, "inside" => $insideThis);
+					}else if (isset($useFollowAction, $useFollowAction['return'], $useFollowAction['reason']) && $useFollowAction['return'] == false) {
+						$dataArr[] = array("return" => false, "inside" => $insideThis, "reason" => $useFollowAction['reason']);
+					}else {
+						$dataArr[] = array("return" => false, "inside" => $insideThis, "reason" => "");
+					}
+				}
+				$countArr = count($dataArr);
+				die(print json_encode(array("return" => true, "count" => $countArr, "data" => $dataArr)));
+			}else {
+				die(print json_encode(array("return" => false, "reason" => "")));
+			}
+		}else if ($type == "comment") {
+			if ($action == "add") {
+				if (isset($ObjRequest['inside_type']) && is_string($ObjRequest['inside_type'])) $insideType = $ObjRequest['inside_type']; else $insideType = null;
+				if (isset($ObjRequest['inside_id']) && is_string($ObjRequest['inside_id'])) $insideId = $ObjRequest['inside_id']; else $insideId = null;
+				if (isset($ObjRequest['content']) && is_string($ObjRequest['content'])) $content = $ObjRequest['content']; else $content = null;
+				if ($insideType == null || $insideId == null) {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+				$commentOptionsAdd = array("inside" => array("type" => $insideType, "id" => $insideId), "content" => $content, "author" => $g_user['mode'], "user" => array("id" => $g_user['id']));
+				$addFeedComment = $_feed->comment_add($commentOptionsAdd);
+				if (isset($addFeedComment['return'], $addFeedComment['data'], $addFeedComment['data']['id']) && $addFeedComment['return'] == true) {
+					$commentDataArr = array();
+					$getCommentOptions = array(
+						"guy" => $g_user['mode']
+					);
+					if ($insideType == "status") {
+						$getCommentOptions[$addFeedComment['data']['id']] = array("reply" => true);
+					}else {
+						$getCommentOptions[$addFeedComment['data']['id']] = array("reply" => false);
+					}
+					$getCommentFetch = $_feed->comment_fetch($getCommentOptions);
+					if (isset($getCommentFetch['return'], $getCommentFetch['data']) && $getCommentFetch['return'] == true) {
+						$commentDataArr[] = $getCommentFetch['data'];
+					}
+					die(print json_encode(array("return" => true, "data" => $commentDataArr, "s" => $getCommentFetch)));
+				}else if (isset($addFeedComment['return'], $addFeedComment['reason']) && $addFeedComment['return'] == false) {
+					die(print json_encode(array("return" => false, "reason" => $addFeedComment['reason'])));
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else if ($action == "get" || $action == "load") {
+				if (isset($ObjRequest['options']) && is_array($ObjRequest['options']) && count($ObjRequest['options']) > 0) $optionsArr = $ObjRequest['options']; else $optionsArr = null;
+				if ($optionsArr == null) {
+					die(print json_encode(array("return" => false, "reason" => "1")));
+				}
+				$dataArr = array();
+				foreach ($optionsArr as $key => $optionsArrThis) {
+					if (isset($optionsArrThis['return']) && is_string($optionsArrThis['return'])) $returnType = $optionsArrThis['return']; else $returnType = null;
+					if (isset($optionsArrThis['inside_type']) && is_string($optionsArrThis['inside_type'])) $insideType = $optionsArrThis['inside_type']; else $insideType = null;
+					if (isset($optionsArrThis['inside_id']) && is_numeric($optionsArrThis['inside_id'])) $insideId = $optionsArrThis['inside_id']; else $insideId = null;
+					if (isset($optionsArrThis['id']) && is_numeric($optionsArrThis['id'])) $commentId = $optionsArrThis['id']; else $commentId = null;
+					if (isset($optionsArrThis['sort']) && is_string($optionsArrThis['sort'])) $commentSort = $optionsArrThis['sort']; else $commentSort = null;
+					if (isset($optionsArrThis['limit']) && is_numeric($optionsArrThis['limit'])) $commentLimit = $optionsArrThis['limit']; else $commentLimit = null;
+					if (isset($optionsArrThis['reply']) && is_bool($optionsArrThis['reply'])) $getReply = $optionsArrThis['reply']; else $getReply = true;
+					if ($returnType == null) {
+						continue;
+					}
+					if ($insideType == null || $insideId == null) {
+						continue;
+					}
+					if ($commentId == null) {
+						$commentId = 0;
+					}
+					if ($commentLimit != null) {
+						$commentLimit = 'LIMIT '.$commentLimit;
+					}
+					if (in_array($commentSort, [">", ">="])) {
+						$commentOrder = "ORDER BY `id` ASC";
+					}else if (in_array($commentSort, ["<", "<="])) {
+						$commentOrder = "ORDER BY `id` DESC";
+					}else {
+						$commentOrder = null;
+					}
+					$getCommentRequest = "SELECT `id` FROM `status_comment` WHERE `id` {$commentSort} {$commentId} AND `inside.type` = '{$insideType}' AND `inside.id` = '{$insideId}' {$commentOrder} {$commentLimit}";
+					$getCommentQuery = mysqli_query($_db->port('beta'), $getCommentRequest);
+					if ($getCommentRequest && mysqli_num_rows($getCommentQuery) > 0) {
+						while ($getCommentFetch = mysqli_fetch_assoc($getCommentQuery)) {
+							if ($returnType == "json") {
+								$thisRequestComment = "SELECT * FROM `status_comment` WHERE `id` = '{$getCommentFetch['id']}' LIMIT 1";
+								$getFeedCommentOptions = array(
+									"return" => "json",
+									"query" => $thisRequestComment
+								);
+								$getFeedComment = $_feed->comment_get(array_merge(array("user" => array("id" => $g_user['id']), "guy" => $g_user['mode']), $getFeedCommentOptions));
+								if (isset($getFeedComment['return'], $getFeedComment['data'][0]) && $getFeedComment['return'] == true) {
+									$feedCommentData = $getFeedComment['data'][0];
+									$dataArr[] = array(
+										"inside_type" => $insideType, 
+										"inside_id" => $insideId,
+										"return" => true,
+										"data" => $feedCommentData
+									);
+									if ($insideType == "status" && $getReply == true && isset($feedCommentData['reply']['count']) && $feedCommentData['reply']['count'] > 0) {
+										$getFeedCommentRelpyRequest = "SELECT * FROM `status_comment` WHERE `inside.type` = 'comment' AND `inside.id` = '{$getCommentFetch['id']}' ORDER BY `id` DESC LIMIT 3";
+										$getFeedCommentRelpyOptions = array(
+											"return" => "json",
+											"query" => $getFeedCommentRelpyRequest
+										);
+										$getFeedCommentReply = $_feed->comment_get($getFeedCommentRelpyOptions);
+										if (isset($getFeedCommentReply['return'], $getFeedCommentReply['data']) && $getFeedCommentReply['return'] == true) {
+											$feedCommentReplyData = $getFeedCommentReply['data'];
+											foreach ($feedCommentReplyData as $key => $feedCommentReplyDataThis) {
+												$dataArr[] = array(
+													"inside_type" => $insideType, 
+													"inside_id" => $insideId,
+													"return" => true,
+													"data" => $feedCommentReplyDataThis
+												);
+											}
+										}
+									}
+								}else if (isset($getFeedComment['return'], $getFeedComment['reason']) && $getFeedComment['return'] == false) {
+									$dataArr[] = array(
+										"inside_type" => $insideType, 
+										"inside_id" => $insideId,
+										"return" => false, 
+										"reason" => $getFeedComment['reason']
+									);
+								}else {
+									$dataArr[] = array(
+										"inside_type" => $insideType, 
+										"inside_id" => $insideId,
+										"return" => false, 
+										"reason" => "3"
+									);
+								}
+							}else if ($returnType == "html") {
+								//.
+							}
+						}
+					}else if ($getCommentRequest && mysqli_num_rows($getCommentQuery) == 0) {
+						$dataArr[] = array(
+							"inside_type" => $insideType, 
+							"inside_id" => $insideId,
+							"return" => true,
+							"data" => array()
+						);
+					}else {
+						$dataArr[] = array(
+							"inside_type" => $insideType, 
+							"inside_id" => $insideId,
+							"return" => false, 
+							"reason" => "2"
+						);
+					}
+				}
+				die(print json_encode(array("return" => true, "data" => $dataArr)));
+			}else if ($action == "delete" || $action == "remove") {
+
+			}else if ($action == "favorite") {
+				if (isset($ObjRequest['id']) && is_array($ObjRequest['id'])) $commentIdArr = $ObjRequest['id']; else $commentIdArr = null;
+				if ($commentIdArr == null) {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}else {
+					$notifyArr = array();
+					foreach ($commentIdArr as $commentIdThis) {
+						$addFavoriteFeedCommentOptions = array("id" => $commentIdThis, "type" => "add");
+						$addFavoriteFeedComment = $_feed->comment_favorite(array_merge(array("user" => array("id" => $g_user['id']), "guy" => $g_user['mode']), $addFavoriteFeedCommentOptions));
+						if (isset($addFavoriteFeedComment['return']) && $addFavoriteFeedComment['return'] == true) {
+							$notifyArr[] = array("id" => $commentIdThis, "return" => true);
+						}else if (isset($addFavoriteFeedComment['return'], $addFavoriteFeedComment['reason']) && $addFavoriteFeedComment['return'] == false) {
+							$notifyArr[] = array("id" => $commentIdThis, "return" => false, "reason" => $addFavoriteFeedComment['reason']);
+						}else {
+							$notifyArr[] = array("id" => $commentIdThis, "return" => false, "reason" => "");
+						}
+					}
+					die(print json_encode(array("return" => true, "data" => $notifyArr)));
+				}
+			}else if ($action == "unfavorite") {
+				if (isset($ObjRequest['id']) && is_array($ObjRequest['id'])) $commentIdArr = $ObjRequest['id']; else $commentIdArr = null;
+				if ($commentIdArr == null) {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}else {
+					$notifyArr = array();
+					foreach ($commentIdArr as $commentIdThis) {
+						$addFavoriteFeedCommentOptions = array("id" => $commentIdThis, "type" => "remove");
+						$addFavoriteFeedComment = $_feed->comment_favorite(array_merge(array("user" => array("id" => $g_user['id']), "guy" => $g_user['mode']), $addFavoriteFeedCommentOptions));
+						if (isset($addFavoriteFeedComment['return']) && $addFavoriteFeedComment['return'] == true) {
+							$notifyArr[] = array("id" => $commentIdThis, "return" => true);
+						}else if (isset($addFavoriteFeedComment['return'], $addFavoriteFeedComment['reason']) && $addFavoriteFeedComment['return'] == false) {
+							$notifyArr[] = array("id" => $commentIdThis, "return" => false, "reason" => $addFavoriteFeedComment['reason']);
+						}else {
+							$notifyArr[] = array("id" => $commentIdThis, "return" => false, "reason" => "");
+						}
+					}
+					die(print json_encode(array("return" => true, "data" => $notifyArr)));
+				}
+			}else if ($action == "stats" || $action == "statistic") {
+				if (isset($ObjRequest['id']) && is_array($ObjRequest['id'])) $commentIdArr = $ObjRequest['id']; else $commentIdArr = null;
+				if (isset($ObjRequest['rows']) && is_array($ObjRequest['rows'])) $commentRowsArr = $ObjRequest['rows']; else $commentRowsArr = null;
+				if (isset($ObjRequest['type']) && is_array($ObjRequest['type'])) $commentTypeArr = $ObjRequest['type']; else $commentTypeArr = null;
+				if ($commentIdArr == null || $commentRowsArr == null || $commentTypeArr == null) {
+					die(print json_encode(array("return" => false, "reason" => "5")));
+				}else {
+					$notifyArr = array();
+					foreach ($commentIdArr as $key => $commentIdThis) {
+						if (!isset($commentRowsArr[$key]) || !isset($commentTypeArr[$key])) {
+							$notifyArr[] = array("id" => $commentIdThis, "return" => false, "reason" => "6");
+							continue;
+						}else {
+							$commentRowsThis = $commentRowsArr[$key];
+							$commentTypeThis = $commentTypeArr[$key];
+						}
+						$getStatsFeedCommentOptions = array("id" => $commentIdThis, "rows" => $commentRowsThis, "type" => $commentTypeThis);
+						$getStatsFeedComment = $_feed->comment_stats($getStatsFeedCommentOptions);
+						if (isset($getStatsFeedComment['return'], $getStatsFeedComment['stats'], $getStatsFeedComment['list']) && $getStatsFeedComment['return'] == true) {
+							$notifyArr[] = array("id" => $commentIdThis, "return" => true, "stats" => $getStatsFeedComment['stats'], "list" => $getStatsFeedComment['list']);
+						}else if (isset($getStatsFeedComment['return'], $getStatsFeedComment['reason']) && $getStatsFeedComment['return'] == false) {
+							$notifyArr[] = array("id" => $commentIdThis, "return" => false, "reason" => $getStatsFeedComment['reason']);
+						}else {
+							$notifyArr[] = array("id" => $commentIdThis, "return" => false, "reason" => "7");
+						}
+					}
+					die(print json_encode(array("return" => true, "data" => $notifyArr)));
+				}
+			}else if ($action == "follow") {
+
+			}else if ($action == "unfollow") {
+
+			}else if ($action == "block") {
+
+			}else if ($action == "unblock") {
+
+			}else {
+				die(print json_encode(array("return" => false, "reason" => "")));
+			}
+		}else {
+			die(print json_encode(array("return" => false, "reason" => "")));
+		}
+	}else if ($port == "maps" && $token == $g_client['token']['action']['maps']) {
+		if ($type == "thumbnail") {
+			if ($action == "get") {
+				if (isset($ObjRequest['title']) && is_string($ObjRequest['title'])) $thumbnailTitle = $ObjRequest['title']; else $thumbnailTitle = null;
+				if (isset($ObjRequest['size']) && is_string($ObjRequest['size'])) $thumbnailSize = $ObjRequest['size']; else $thumbnailSize = 100;
+				if ($thumbnailTitle != null) {
+					$getThumbnailMaps = $_maps->thumbnail($thumbnailTitle, $thumbnailSize);
+					if (isset($getThumbnailMaps['return']) && $getThumbnailMaps['return'] == true) {
+						die(print json_encode(array("return" => true, "data" => $getThumbnailMaps['data'])));
+					}else if (isset($getThumbnailMaps['return'], $getThumbnailMaps['reason']) && $getThumbnailMaps['return'] == false) {
+						die(print json_encode(array("return" => false, "reason" => $getThumbnailMaps['reason'])));
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else {
+				die(print json_encode(array("return" => false, "reason" => "")));
+			}
+		}else if ($type == "places") {
+			if ($action == "search") {
+				if (isset($ObjRequest['keywords']) && is_string($ObjRequest['keywords'])) $keywords = $ObjRequest['keywords']; else $keywords = null;
+				$requestPlacesOptions = array("action" => "search", "keywords" => $keywords);
+				$requestPlaces = $_maps->places($requestPlacesOptions);
+				if (isset($requestPlaces['return'], $requestPlaces['data']) && $requestPlaces['return'] == true) {
+					die(print json_encode(array("return" => true, "data" => $requestPlaces['data'])));
+				}else if (isset($requestPlaces['return'], $requestPlaces['reason']) && $requestPlaces['return'] == false) {
+					die(print json_encode(array("return" => false, "reason" => $requestPlaces['reason'])));
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+				die;
+				if (isset($ObjRequest['query']) && is_array($ObjRequest['query'])) $query = $ObjRequest['query']; else $query = null;
+				if ($query == null && count($query) == 0) {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}else {
+					if (isset($query['by'])) {
+						$query['by'] = $query['by'].'search';
+					}
+					$requestMapsPlaces = $_maps->places(false, array("type" => "search", "query" => $query));
+					if (isset($requestMapsPlaces['return'], $requestMapsPlaces['data']) && $requestMapsPlaces['return'] == true) {
+						$mapsPlacesData = $requestMapsPlaces['data'];
+						foreach ($mapsPlacesData as $key => $mapsPlacesDataThis) {
+							$mapsPlacesData['data'][$key] = $mapsPlacesDataThis;
+							if (isset($mapsPlacesDataThis['reference'])) {
+								unset($mapsPlacesData['data'][$key]['reference']);
+							}
+							if (isset($mapsPlacesDataThis['formatted_address'])) {
+								$mapsPlacesData['data'][$key]['address'] = $mapsPlacesDataThis['formatted_address'];
+								unset($mapsPlacesData['data'][$key]['formatted_address']);
+							}
+							if (isset($mapsPlacesDataThis['geometry']['location']['lat'], $mapsPlacesDataThis['geometry']['location']['lng'])) {
+								$mapsPlacesData['data'][$key]['location'] = $mapsPlacesDataThis['geometry']['location']['lat'].','.$mapsPlacesDataThis['geometry']['location']['lng'];
+								unset($mapsPlacesData['data'][$key]['geometry']['location']);
+							}
+							if (isset($mapsPlacesDataThis['geometry']['viewport'])) {
+								$mapsPlacesData['data'][$key]['viewport'] = $mapsPlacesDataThis['geometry']['viewport'];
+								unset($mapsPlacesData['data'][$key]['geometry']['viewport']);
+							}
+							if (isset($mapsPlacesDataThis['geometry'])) {
+								unset($mapsPlacesData['data'][$key]['geometry']);
+							}
+						}
+						$mapsPlaces = $mapsPlacesData['data'];
+						die(print json_encode(array("return" => true, "data" => $mapsPlaces)));
+					}else if (isset($requestMapsPlaces['return'], $requestMapsPlaces['reason']) && $requestMapsPlaces['return'] == false) {
+						die(print json_encode(array("return" => false, "reason" => $requestMapsPlaces['reason'])));
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+				}
+			}else {
+				die(print json_encode(array("return" => false, "reason" => "")));
+			}
+		}else {
+			die(print json_encode(array("return" => false, "reason" => "")));
+		}
+	}else if ($port == "sites" && $token == $g_client['token']['action']['sites']) {
+		if ($type == "info" || $type == "data") {
+			if ($action == "extract") {
+				if (isset($ObjRequest['url']) && is_string($ObjRequest['url'])) $siteUrl = $ObjRequest['url']; else $siteUrl = null;
+				if ($siteUrl != null) {
+					$extractOptions = array(
+						"guy" => $g_user['mode'],
+						"url" => $siteUrl
+					);
+					$getInfoSites = $_sites->extract($extractOptions);
+					if (isset($getInfoSites['return'], $getInfoSites['data']) && $getInfoSites['return'] == true) {
+						if (isset($getInfoSites['data']['thumbnail']) && is_string($getInfoSites['data']['thumbnail']) && $getInfoSites['data']['thumbnail'] != null) {
+							$getInfoSites['data']['thumbnail'] = $_tool->links($getInfoSites['data']['thumbnail']);
+						}else {
+							$getInfoSites['data']['thumbnail'] = null;
+						}
+						if (isset($getInfoSites['data']['title']) && is_string($getInfoSites['data']['title']) && $getInfoSites['data']['title'] != null) {
+							$getInfoSites['data']['title'] = $_tool->convertDisplayString($getInfoSites['data']['title']);
+						}
+						if (isset($getInfoSites['data']['description']) && is_string($getInfoSites['data']['description']) && $getInfoSites['data']['description'] != null) {
+							$getInfoSites['data']['description'] = $_tool->convertDisplayString($getInfoSites['data']['description']);
+						}
+						die(print json_encode(array("return" => true, "data" => $getInfoSites['data'], "url" => $siteUrl)));
+					}else if (isset($getInfoSites['return'], $getInfoSites['reason']) && $getInfoSites['return'] == false) {
+						die(print json_encode(array("return" => false, "reason" => $getInfoSites['reason'])));
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else if ($action == "popup") {
+				if (isset($ObjRequest['display']) && is_string($ObjRequest['display'])) $siteDisplay = $ObjRequest['display']; else $siteDisplay = null;
+				if (isset($ObjRequest['url']) && is_string($ObjRequest['url'])) $siteUrl = $ObjRequest['url']; else $siteUrl = null;
+				if (isset($ObjRequest['section']) && is_array($ObjRequest['section'])) $sectionArr = $ObjRequest['section']; else $sectionArr = null;
+				if ($siteDisplay == null || $sectionArr == null) {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+				$dataArr = array();
+				if (in_array("info", $sectionArr)) {
+					$dataArr['info'] = array();
+					$getInfoSites = $_sites->data(array("guy" => $g_user['mode'], "type" => "info", "action" => "get", "label" => "display", "value" => $siteDisplay, "limit" => "LIMIT 1"));
+					if (isset($getInfoSites['return'], $getInfoSites['data'], $getInfoSites['data'][0]) && $getInfoSites['return'] == true) {
+						$getInfoSitesArr = $getInfoSites['data'][0];
+						$dataArr['info']['thumbnail'] = isset($getInfoSitesArr['thumbnail']) && is_string($getInfoSitesArr['thumbnail']) && $getInfoSitesArr['thumbnail'] != null ? $_tool->links($getInfoSitesArr['thumbnail']) : null;
+						$dataArr['info']['title'] = isset($getInfoSitesArr['title']) && is_string($getInfoSitesArr['title']) && $getInfoSitesArr['title'] != null ? $_tool->convertDisplayString($getInfoSitesArr['title']) : null;
+						$dataArr['info']['description'] = isset($getInfoSitesArr['description']) && is_string($getInfoSitesArr['description']) && $getInfoSitesArr['description'] != null ? $_tool->convertDisplayString($getInfoSitesArr['description']) : null;
+						$dataArr['info']['host'] = isset($getInfoSitesArr['host']) && is_string($getInfoSitesArr['host']) && $getInfoSitesArr['host'] != null ? $_tool->convertDisplayString($getInfoSitesArr['host']) : null;
+						$dataArr['info']['updated'] = isset($getInfoSitesArr['updated']) && (is_string($getInfoSitesArr['updated']) || is_numeric($getInfoSitesArr['updated'])) && $getInfoSitesArr['updated'] != null ? intval($getInfoSitesArr['updated']) : null;
+					}
+				}
+				if (in_array("scan", $sectionArr)) {
+					$dataArr['scan'] = array();
+					$getScanDisplayRequest = "SELECT `display` FROM `sites_scan` WHERE `display` IN (SELECT `scan` FROM `sites_info` WHERE `display` = '".$_tool->convertDatabaseString($siteDisplay)."') LIMIT 1;";
+					$getScanDisplayQuery = mysqli_query($_db->port('beta'), $getScanDisplayRequest);
+					if (!$getScanDisplayQuery) {
+						//.
+					}else {
+						if (mysqli_num_rows($getScanDisplayQuery) == 0) {
+							//.
+						}else {
+							$scanDisplay = mysqli_fetch_assoc($getScanDisplayQuery)['display'];
+						}
+					}
+					if (isset($scanDisplay) && is_string($scanDisplay)) {
+						$getScanlog = $_sites->scan(array("guy" => $g_user['mode'], "action" => "get", "label" => "display", "value" => $scanDisplay, "limit" => "LIMIT 1"));
+						if (isset($getScanlog, $getScanlog['return'], $getScanlog['data'], $getScanlog['data'][0]) && $getScanlog['return'] == true) {
+							$dataScanlog = $getScanlog['data'][0];
+							$dataArr['scan']['display'] = isset($dataScanlog['display']) && is_string($dataScanlog['display']) ? $dataScanlog['display'] : null;
+							$dataArr['scan']['hash'] = isset($dataScanlog['hash']) && is_string($dataScanlog['hash']) ? $dataScanlog['hash'] : null;
+							$dataArr['scan']['total'] = isset($dataScanlog['total']) && (is_string($dataScanlog['total']) || is_numeric($dataScanlog['total'])) ? intval($dataScanlog['total']) : null;
+							$dataArr['scan']['data'] = isset($dataScanlog['data']) && is_array($dataScanlog['data']) ? $dataScanlog['data'] : null;
+							$dataArr['scan']['status'] = isset($dataScanlog['status']) && (is_string($dataScanlog['status']) || is_numeric($dataScanlog['status'])) ? $_tool->convertDisplayString($dataScanlog['status']) : null;
+							$dataArr['scan']['updated'] = isset($dataScanlog['updated']) && (is_string($dataScanlog['updated']) || is_numeric($dataScanlog['updated'])) ? intval($dataScanlog['updated']) : null;
+						}
+					}else {
+						//.
+					}
+				}
+				if (in_array("certificate", $sectionArr)) {
+					$dataArr['certificate'] = array();
+					$getCertificateDisplayRequest = "SELECT `display` FROM `sites_certificate` WHERE `display` IN (SELECT `certificate` FROM `sites_info` WHERE `display` = '".$_tool->convertDatabaseString($siteDisplay)."') LIMIT 1;";
+					$getCertificateDisplayQuery = mysqli_query($_db->port('beta'), $getCertificateDisplayRequest);
+					if (!$getCertificateDisplayQuery) {
+						//.
+					}else {
+						if (mysqli_num_rows($getCertificateDisplayQuery) == 0) {
+							//.
+						}else {
+							$certificateDisplay = mysqli_fetch_assoc($getCertificateDisplayQuery)['display'];
+						}
+					}
+					if (isset($certificateDisplay) && is_string($certificateDisplay)) {
+						$getCertificate = $_sites->certificate(array("guy" => $g_user['mode'], "action" => "get", "label" => "display", "value" => $certificateDisplay, "limit" => "LIMIT 1"));
+						if (isset($getCertificate, $getCertificate['return'], $getCertificate['data'], $getCertificate['data'][0]) && $getCertificate['return'] == true) {
+							$dataCertificate = $getCertificate['data'][0];
+							$dataArr['certificate']['display'] = isset($dataCertificate['display']) && is_string($dataCertificate['display']) ? $dataCertificate['display'] : null;
+							$dataArr['certificate']['hash'] = isset($dataCertificate['hash']) && is_string($dataCertificate['hash']) ? $dataCertificate['hash'] : null;
+							$dataArr['certificate']['identifier'] = isset($dataCertificate['identifier']) && is_array($dataCertificate['identifier']) ? $dataCertificate['identifier'] : null;
+							$dataArr['certificate']['issuer'] = isset($dataCertificate['issuer']) && is_array($dataCertificate['issuer']) ? $dataCertificate['issuer'] : null;
+							$dataArr['certificate']['policies'] = isset($dataCertificate['policies']) && (is_string($dataCertificate['policies']) || is_numeric($dataCertificate['policies'])) ? $_tool->convertDisplayString($dataCertificate['policies']) : null;
+							$dataArr['certificate']['signature'] = isset($dataCertificate['signature']) && is_array($dataCertificate['signature']) ? $dataCertificate['signature'] : null;
+							$dataArr['certificate']['subject'] = isset($dataCertificate['subject']) && is_array($dataCertificate['subject']) ? $dataCertificate['subject'] : null;
+							$dataArr['certificate']['usefor'] = isset($dataCertificate['usefor']) && is_array($dataCertificate['usefor']) ? $dataCertificate['usefor'] : null;
+							$dataArr['certificate']['valid'] = isset($dataCertificate['valid']) && is_array($dataCertificate['valid']) ? $dataCertificate['valid'] : null;
+							$dataArr['certificate']['updated'] = isset($dataCertificate['updated']) && (is_string($dataCertificate['updated']) || is_numeric($dataCertificate['updated'])) ? intval($dataCertificate['updated']) : null;
+						}
+					}else {
+						//.
+					}
+				}
+				die(print json_encode(array("return" => true, "data" => $dataArr)));
+			}else if ($action == "embed") {
+				if (isset($ObjRequest['url']) && is_string($ObjRequest['url'])) $siteUrl = $ObjRequest['url']; else $siteUrl = null;
+				if ($siteUrl != null) {
+					if (preg_match($_parameter->get('regex_sites_giccos_direct'), $siteUrl, $siteMatch) && isset($siteMatch[8], $siteMatch[9]) && is_string($siteMatch[8]) && is_string($siteMatch[9])) {
+						$siteUrl = urldecode($_tool->hash('decode', $siteMatch[9], $_parameter->get('hash_sites_direct')));
+					}
+					$regexUrl = $_parameter->get('regex_sites_url');
+					if (!preg_match($regexUrl, $siteUrl)) {
+						die(print json_encode(array("return" => false, "reason" => "1")));
+					}
+					$embedOptions = array(
+						"url" => $siteUrl
+					);
+					$getInfoSites = $_sites->embed($embedOptions);
+					if (isset($getInfoSites['return'], $getInfoSites['data']) && $getInfoSites['return'] == true) {
+						die(print json_encode(array("return" => true, "data" => $getInfoSites['data'])));
+					}else if (isset($getInfoSites['return'], $getInfoSites['reason']) && $getInfoSites['return'] == false) {
+						die(print json_encode(array("return" => false, "reason" => $getInfoSites['reason'])));
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "2")));
+					}
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "3")));
+				}
+				die(print json_encode(array("return" => true, "reason" => "4")));
+			}else {
+				die(print json_encode(array("return" => false, "reason" => "")));
+			}
+		}else if ($type == "scan") {
+			if ($action == "check") {
+				if (isset($ObjRequest['url']) && is_string($ObjRequest['url'])) $siteUrl = $ObjRequest['url']; else $siteUrl = null;
+				if ($siteUrl != null) {
+					$regexUrl = $_parameter->get('regex_sites_url');
+					if (!preg_match($regexUrl, $siteUrl)) {
+						die(print json_encode(array("return" => false, "reason" => "1")));
+					}
+					preg_match($regexUrl, $siteUrl, $siteMatch);
+					if (isset($siteMatch[2]) && is_string($siteMatch[2])) {
+						$siteInfo['scheme'] = $siteMatch[2];
+					}else {
+						$siteInfo['scheme'] = null;
+					}
+					if (isset($siteMatch[5]) && is_string($siteMatch[5])) {
+						$siteInfo['sub'] = $siteMatch[5];
+					}else {
+						$siteInfo['sub'] = null;
+					}
+					if (isset($siteMatch[7]) && is_string($siteMatch[7])) {
+						$siteInfo['host'] = $siteMatch[7];
+					}else {
+						$siteInfo['host'] = null;
+					}
+					if (isset($siteMatch[10]) && is_string($siteMatch[10])) {
+						$siteInfo['path'] = $siteMatch[10];
+					}else {
+						$siteInfo['path'] = null;
+					}
+					if (isset($_SESSION["cache"]['sites']['scan']['check'])) {
+						$cacheSitesScanCheck = $_SESSION["cache"]['sites']['scan']['check'];
+						if (is_array($cacheSitesScanCheck) && count($cacheSitesScanCheck) > 0) {
+							foreach ($cacheSitesScanCheck as $thisUrl => $thisValue) {
+								if ($thisUrl == $siteUrl) {
+									if (isset($thisValue) && $thisValue == true) {
+										die(print json_encode(array("return" => true)));
+										break;
+									}
+								}
+							}
+						}
+					}
+					$siteHash = hash('md5', $siteInfo['scheme'].'::'.$siteInfo['sub'].'::'.$siteInfo['host'].'::'.$siteInfo['path']);
+					$existsScanlog = $_sites->scan(array("guy" => $g_user['mode'], "action" => "exists", "label" => "hash", "value" => hash('crc32', $siteHash)));
+					if (isset($existsScanlog, $existsScanlog['return'], $existsScanlog['exists']) && $existsScanlog['return'] == true) {
+						if ($existsScanlog['exists'] == true) {
+							$getScanlog = $_sites->scan(array("guy" => $g_user['mode'], "action" => "get", "label" => "hash", "value" => hash('crc32', $siteHash), "limit" => "LIMIT 1"));
+							if (isset($getScanlog, $getScanlog['return'], $getScanlog['data'], $getScanlog['data'][0], $getScanlog['data'][0]['display']) && $getScanlog['return'] == true) {
+								mysqli_query($_db->port('beta'), "UPDATE `sites_info` SET `scan` = '".$getScanlog['data'][0]['display']."' WHERE `hash` = '".$siteHash."' ;");
+								$_SESSION["cache"]['sites']['scan']['check'][$siteUrl] = true;
+								die(print json_encode(array("return" => true)));
+							}else if (isset($getScanlog, $getScanlog['return'], $getScanlog['reason']) && $getScanlog['return'] == false) {
+								die(print json_encode(array("return" => false, "reason" => $getScanlog['reason'])));
+							}else {
+								die(print json_encode(array("return" => false, "reason" => "123")));
+							}
+						}else {
+							$extractScanlog = $_sites->scan(array("guy" => $g_user['mode'], "action" => "extract", "url" => $siteUrl));
+							if (isset($extractScanlog, $extractScanlog['return'], $extractScanlog['data']) && $extractScanlog['return'] == true) {
+								$extractScanlog['data']['hash'] = hash('crc32', $siteHash);
+								$addScanlog = $_sites->scan(array("guy" => $g_user['mode'], "action" => "add", "info" => $extractScanlog['data']));
+								if (isset($addScanlog, $addScanlog['return'], $addScanlog['data'], $addScanlog['data']['display']) && $addScanlog['return'] == true) {
+									mysqli_query($_db->port('beta'), "UPDATE `sites_info` SET `scan` = '".$addScanlog['data']['display']."' WHERE `hash` = '".$siteHash."' ;");
+									$_SESSION["cache"]['sites']['scan']['check'][$siteUrl] = true;
+									die(print json_encode(array("return" => true)));
+								}else if (isset($addScanlog, $addScanlog['return'], $addScanlog['reason']) && $addScanlog['return'] == false) {
+									die(print json_encode(array("return" => false, "reason" => $addScanlog['reason'])));
+								}else {
+									die(print json_encode(array("return" => false, "reason" => "34")));
+								}
+							}else if (isset($extractScanlog, $extractScanlog['return'], $extractScanlog['reason']) && $extractScanlog['return'] == false) {
+								die(print json_encode(array("return" => false, "reason" => $extractScanlog['reason'])));
+							}else {
+								die(print json_encode(array("return" => false, "reason" => $extractScanlog)));
+							}
+						}
+					}else if (isset($existsScanlog, $existsScanlog['return'], $existsScanlog['reason']) && $existsScanlog['return'] == false) {
+						die(print json_encode(array("return" => false, "reason" => $existsScanlog['reason'])));
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "51")));
+					}
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "43")));
+				}
+			}else {
+				die(print json_encode(array("return" => false, "reason" => "23")));
+			}
+		}else {
+			die(print json_encode(array("return" => false, "reason" => "3")));
+		}
+	}else if ($port == "messages" && $token == $g_client['token']['action']['messages']) {
+		if (!isset($g_user['login']) || !$g_user['login']) {
+			die(print json_encode(array("return" => false, "reason" => "")));
+		}
+		if ($type == "chatbox") {
+			if (isset($ObjRequest['local']) && is_string($ObjRequest['local'])) $local = $ObjRequest['local']; else $local = null;
+			if ($local == "hashtag") {
+				if (isset($ObjRequest['hashtag']) && is_string($ObjRequest['hashtag'])) $chatboxHashtag = $ObjRequest['hashtag']; else $chatboxHashtag = null;
+				if ($action == "add" && $chatboxHashtag != null) {
+					if (isset($ObjRequest['content']) && is_string($ObjRequest['content'])) $messageContent = $ObjRequest['content']; else $messageContent = null;
+					if ($messageContent == null) {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+					$insertMessageChatbox = $_messages->chatbox(array("port" => "hashtag", "type" => "insert", "hashtag" => $chatboxHashtag, "content" => $messageContent));
+					if (isset($insertMessageChatbox['return'], $insertMessageChatbox['data']) && $insertMessageChatbox['return'] == true) {
+						$messagesArr = array();
+						$messagesData = $insertMessageChatbox['data'];
+						$messagesData['author']['avatar'] = $g_user['avatar.small'];
+						$messagesData['author']['cover'] = $g_user['cover.small'];
+						$messagesData['author']['name'] = $g_user['fullname'];
+						$messagesData['author']['tag'] = $g_user['username'];
+						$messagesData['author']['link'] = $g_user['link'];
+						$messagesArr[] = $messagesData;
+						die(print json_encode(array("return" => true, "data" => $messagesArr)));
+					}else if (isset($insertMessageChatbox['return'], $insertMessageChatbox['reason']) && $insertMessageChatbox['return'] == false) {
+						die(print json_encode(array("return" => false, "reason" => $insertMessageChatbox['reason'])));
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else {
+				die(print json_encode(array("return" => false, "reason" => "")));
+			}
+		}else if ($type == "private") {
+			if (isset($ObjRequest['manage']) && is_string($ObjRequest['manage'])) $manage = $ObjRequest['manage']; else $manage = null;
+			if ($manage == "guy") {
+				if ($action == "search") {
+					if (isset($ObjRequest['from']) && is_string($ObjRequest['from'])) $from = $ObjRequest['from']; else $from = null;
+					if (isset($ObjRequest['value']) && is_string($ObjRequest['value'])) $value = $ObjRequest['value']; else $value = null;
+					if ($from == null || $value == null) {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+					if ($from == "all") {
+						$requestRegex[] = "`fullname` LIKE '%{$value}%'";
+						$requestRegex[] = "`username` = '{$value}'";
+						$requestRegex[] = "`email` = '{$value}'";
+						$requestRegex[] = "`phone` = '{$value}'";
+						$requestRegex[] = "`link` = '{$value}'";
+					}else if ($from == "friends") {
+						$requestRegex[] = "`fullname` LIKE '%{$value}%'";
+						$requestRegex[] = "`username` LIKE '%{$value}%'";
+						$requestRegex[] = "`email` = '{$value}'";
+						$requestRegex[] = "`phone` = '{$value}'";
+						$requestRegex[] = "`link` = '{$value}'";
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+					foreach ($requestRegex as $key => $requestRegexThis) {
+						if (isset($searchQueryRegexThis) && $searchQueryRegexThis != null) {
+							$searchQueryRegexThis .= " OR ".$requestRegexThis;
+						}else {
+							$searchQueryRegexThis = $requestRegexThis;
+						}
+					}
+					if ($from == "all") {
+						$searchRequest = "SELECT `id` FROM `users` WHERE `private.search` >= '{$_parameter->get('user_private.search_agree')}' AND ({$searchQueryRegexThis})";
+					}else if ($from == "friends") {
+						$searchRequest = "SELECT `id` FROM `users` WHERE `private.tag` >= '{$_parameter->get('user_private.tag_agree')}' AND `id` IN (SELECT `guy.id` FROM `friends` WHERE `user.id` = '{$g_user['id']}') AND ({$searchQueryRegexThis})";
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+					$guyArr = array();
+					$searchQuery = mysqli_query($_db->port('beta'), $searchRequest);
+					if ($searchQuery == true && mysqli_num_rows($searchQuery) > 0) {
+						while ($searchFetch = mysqli_fetch_assoc($searchQuery)) {
+							$getUserAction = $_user->getInfo(array("rows" => "`id`, `username`, `fullname`, `avatar.small`, `cover.small`", "label" => "id", "value" => $searchFetch['id']));
+							if (isset($getUserAction['return'], $getUserAction['data'][0]) && $getUserAction['return'] == true) {
+								$guyArr[] = array(
+									"type" => "user",
+									"id" => $getUserAction['data'][0]['id'],
+									"tag" => $getUserAction['data'][0]['username'],
+									"name" => $getUserAction['data'][0]['fullname'],
+									"avatar" => $getUserAction['data'][0]['avatar.small'],
+									"cover" => $getUserAction['data'][0]['cover.small']
+								);
+							}else {
+								continue;
+							}
+						}
+					}
+					die(print json_encode(array("return" => true, "results" => $guyArr)));
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else if ($manage == "tab") {
+				if ($action == "add") {
+					if (isset($ObjRequest['private']) && is_string($ObjRequest['private'])) $tabPrivate = $ObjRequest['private']; else $tabPrivate = null;
+					if (isset($ObjRequest['type']) && is_string($ObjRequest['type'])) $tabType = $ObjRequest['type']; else $tabType = null;
+					if (isset($ObjRequest['name']) && is_string($ObjRequest['name'])) $tabName = $ObjRequest['name']; else $tabName = null;
+					if (isset($ObjRequest['guy']) && is_array($ObjRequest['guy']) && count($ObjRequest['guy']) > 0) $tabGuy = $ObjRequest['guy']; else $tabGuy = null;
+					if (isset($ObjRequest['language']) && is_string($ObjRequest['language'])) $tabLanguage = $ObjRequest['language']; else $tabLanguage = null;
+					if ($tabPrivate == null || $tabGuy == null) {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+					if (!in_array($tabType, [null, "private", "groups"])) {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+					$addMessagesTabOptions = array(
+						"action" => "add", 
+						"private" => $tabPrivate,
+						"type" => $tabType,
+						"name" => $tabName, 
+						"guy" => $tabGuy,
+						"language" => $tabLanguage
+					);
+					$addMessagesTab = $_messages->tab($addMessagesTabOptions);
+					if (isset($addMessagesTab['return'], $addMessagesTab['tab']) && $addMessagesTab['return'] == true && $addMessagesTab['tab'] != null) {
+						die(print json_encode(array("return" => true, "tab" => $addMessagesTab['tab'])));
+					}else if (isset($addMessagesTab['return'], $addMessagesTab['reason']) && $addMessagesTab['return'] == false) {
+						die(print json_encode(array("return" => false, "reason" => $addMessagesTab['reason'])));
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+				}else if ($action == "remove" || $action == "delete") {
+					if (isset($ObjRequest['id']) && is_numeric($ObjRequest['id'])) $tabId = $ObjRequest['id']; else $tabId = null;
+					if ($tabId == null) {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+					$deleteMessagesTabOptions = array(
+						"action" => "delete",
+						"id" => $tabId,
+						"guy" => $g_user['mode']
+					);
+					$deleteMessagesTab = $_messages->tab($deleteMessagesTabOptions);
+					if (isset($deleteMessagesTab['return']) && $deleteMessagesTab['return'] == true) {
+						die(print json_encode(array("return" => true)));
+					}else if (isset($deleteMessagesTab['return'], $deleteMessagesTab['reason']) && $deleteMessagesTab['return'] == false) {
+						die(print json_encode(array("return" => false, "reason" => $deleteMessagesTab['reason'])));
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+				}else if ($action == "get") {
+					if (isset($ObjRequest['rows']) && is_array($ObjRequest['rows']) && count($ObjRequest['rows']) > 0) $rowsArr = $ObjRequest['rows']; else $rowsArr = null;
+					if (isset($ObjRequest['label']) && is_string($ObjRequest['label'])) $tabLabel = $ObjRequest['label']; else $tabLabel = null;
+					if (isset($ObjRequest['value']) && (is_string($ObjRequest['value']) || is_numeric($ObjRequest['value']))) $tabValue = $ObjRequest['value']; else $tabValue = null;
+					if (isset($ObjRequest['limit']) && is_numeric($ObjRequest['limit'])) $tabLimit = $ObjRequest['limit']; else $tabLimit = null;
+					if ($tabLabel == null || $tabValue == null) {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+					if ($tabLimit != null) {
+						$tabLimit = "LIMIT ".$tabLimit;
+					}
+					$getMessagesTabOptions = array(
+						"action" => "get", 
+						"label" => $tabLabel, 
+						"value" => $tabValue,
+						"limit" => $tabLimit
+					);
+					$getMessagesTab = $_messages->tab($getMessagesTabOptions);
+					if (isset($getMessagesTab['return'], $getMessagesTab['count'], $getMessagesTab['tab']) && $getMessagesTab['return'] == true) {
+						$dataArrCache = array();
+						if ($rowsArr == null) {
+							foreach ($getMessagesTab['tab'] as $key => $getMessagesTabThis) {
+								unset($getMessagesTab['tab'][$key]['token']);
+								$getMessagesTab['tab'][$key][$tabLabel] = $tabValue;
+								$getMessagesTab['tab'][$key]['link'] = $_tool->links('messages/private/'.$getMessagesTabThis['display']);
+								$getSeenViews = $_messages->views(array("action" => "seen", "id" => $getMessagesTabThis['id'], "guy" => $g_user['mode']));
+								if (isset($getSeenViews['return'], $getSeenViews['seen']) && $getSeenViews['return'] == true) {
+									if ($getSeenViews['seen'] == true) {
+										$getMessagesTab['tab'][$key]['status']['seen'] = true;
+									}else {
+										$getMessagesTab['tab'][$key]['status']['seen'] = false;
+									}
+								}
+								$getExistsTyping = $_messages->typing(array("action" => "exists", "id" => $getMessagesTabThis['id'], "guy" => $g_user['mode']));
+								if (isset($getExistsTyping['return'], $getExistsTyping['exists']) && $getExistsTyping['return'] == true) {
+									if ($getExistsTyping['exists'] == true) {
+										$getMessagesTab['tab'][$key]['status']['typing'] = true;
+									}else {
+										$getMessagesTab['tab'][$key]['status']['typing'] = false;
+									}
+								}
+								//.
+								$getMessagesTab['tab'][$key]['options']['language'] = $getMessagesTab['tab'][$key]['options']['delete'] = $getMessagesTab['tab'][$key]['options']['link'] = true;
+								if ($getMessagesTab['tab'][$key]['type'] == "groups") {
+									$getMessagesTab['tab'][$key]['options']['rename'] = true;
+								}
+							}
+							$dataArrCache = $getMessagesTab['tab'];
+							$countArrCache = $getMessagesTab['count'];
+						}else {
+							foreach ($rowsArr as $rowThisKey => $rowThisValue) {
+								foreach ($getMessagesTab['tab'] as $key => $tabDataThis) {
+									foreach ($tabDataThis as $dataThisKey => $dataThisValue) {
+										if ($dataThisKey == $rowThisValue) {
+											$dataArrCache[$rowThisKey][$dataThisKey] = $dataThisValue;
+										}
+									}
+								}
+							}
+							$countArrCache = count($dataArrCache);
+						}
+						die(print json_encode(array("return" => true, "count" => $countArrCache, "tab" => $dataArrCache)));
+					}else if (isset($getMessagesTab['return'], $getMessagesTab['reason']) && $getMessagesTab['return'] == false) {
+						die(print json_encode(array("return" => false, "reason" => $getMessagesTab['reason'])));
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+				}else if ($action == "change") {
+					if (isset($ObjRequest['id']) && is_numeric($ObjRequest['id'])) $tabId = $ObjRequest['id']; else $tabId = null;
+					if (isset($ObjRequest['label']) && (is_string($ObjRequest['label']) || is_numeric($ObjRequest['label']))) $tabLabel = $ObjRequest['label']; else $tabLabel = null;
+					if (isset($ObjRequest['value']) && (is_string($ObjRequest['value']) || is_numeric($ObjRequest['value']))) $tabValue = $ObjRequest['value']; else $tabValue = null;
+					if ($tabId == null) {
+						die(print json_encode(array("return" => false, "reason" => "1")));
+					}else if ($tabLabel == null || $tabValue == null) {
+						if ($tabLabel == "name" && $tabValue == null) {
+							//.
+						}else if ($tabLabel == null || $tabValue == null) {
+							die(print json_encode(array("return" => false, "reason" => "2")));
+						}
+					}
+					$changeMessagesTabOptions = array(
+						"action" => "change",
+						"id" => $tabId,
+						"label" => $tabLabel,
+						"value" => $tabValue
+					);
+					$changeMessagesTab = $_messages->tab($changeMessagesTabOptions);
+					if (isset($changeMessagesTab['return']) && $changeMessagesTab['return'] == true) {
+						die(print json_encode(array("return" => true)));
+					}else if (isset($changeMessagesTab['return'], $changeMessagesTab['reason']) && $changeMessagesTab['return'] == false) {
+						die(print json_encode(array("return" => false, "reason" => $changeMessagesTab['reason'])));
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "1")));
+					}
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "1")));
+				}
+			}else if ($manage == "members") {
+				if ($action == "add") {
+					die(print json_encode(array("return" => true)));
+				}else if ($action == "get") {
+					if (isset($ObjRequest['id']) && is_numeric($ObjRequest['id'])) $tabId = $ObjRequest['id']; else $tabId = null;
+					if (isset($ObjRequest['rows']) && is_array($ObjRequest['rows']) && count($ObjRequest['rows']) > 0) $rowsArr = $ObjRequest['rows']; else $rowsArr = null;
+					if (isset($ObjRequest['guy']['type']) && is_string($ObjRequest['guy']['type'])) $guyType = $ObjRequest['guy']['type']; else $guyType = null;
+					if (isset($ObjRequest['guy']['id']) && is_string($ObjRequest['guy']['id'])) $guyId = $ObjRequest['guy']['id']; else $guyId = null;
+					if (isset($ObjRequest['limit']) && is_numeric($ObjRequest['limit'])) $membersLimit = $ObjRequest['limit']; else $membersLimit = null;
+					if ($tabId == null) {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+					if ($guyType == null || $guyId == null) {
+						$getMessagesMembersOptions = array(
+							"action" => "get",
+							"label" => "tab",
+							"value" => $tabId
+						);
+					}else {
+						if ($guyType == "mode" && $guyId == "auto") {
+							$guyType = $g_user['mode']['type'];
+							$guyId = $g_user['mode']['id'];
+						}
+						$getMessagesMembersOptions = array(
+							"action" => "get",
+							"label" => "tab",
+							"value" => $tabId,
+							"guy" => array(
+								"type" => $guyType,
+								"id" => $guyId
+							)
+						);
+					}
+					if (isset($getMessagesMembersOptions) && $getMessagesMembersOptions != null) {
+						if ($membersLimit != null) {
+							$getMessagesMembersOptions['limit'] = 'LIMIT '.$membersLimit;
+						}
+						$getMessagesMembers = $_messages->members($getMessagesMembersOptions);
+						if (isset($getMessagesMembers['return'], $getMessagesMembers['count'], $getMessagesMembers['data']) && $getMessagesMembers['return'] == true) {
+							$dataArrCache = array();
+							if ($rowsArr == null) {
+								$dataArrCache = $getMessagesMembers['data'];
+								$countArrCache = $getMessagesMembers['count'];
+							}else {
+								foreach ($rowsArr as $rowThisKey => $rowThisValue) {
+									foreach ($getMessagesMembers['data'] as $key => $memberDataThis) {
+										foreach ($memberDataThis as $dataThisKey => $dataThisValue) {
+											if ($dataThisKey == $rowThisValue) {
+												$dataArrCache[$rowThisKey][$dataThisKey] = $dataThisValue;
+											}
+										}
+									}
+								}
+								$countArrCache = count($dataArrCache);
+							}
+							die(print json_encode(array("return" => true, "count" => $countArrCache, "data" => $dataArrCache)));
+						}else if (isset($getMessagesMembers['return'], $getMessagesMembers['reason']) && $getMessagesMembers['return'] == false) {
+							die(print json_encode(array("return" => false, "reason" => $getMessagesMembers['reason'])));
+						}else {
+							die(print json_encode(array("return" => false, "reason" => "")));
+						}
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+				}else if ($action == "change") {
+					if (isset($ObjRequest['id']) && is_numeric($ObjRequest['id'])) $tabId = $ObjRequest['id']; else $tabId = null;
+					if (isset($ObjRequest['guy']['type']) && is_string($ObjRequest['guy']['type'])) $guyType = $ObjRequest['guy']['type']; else $guyType = null;
+					if (isset($ObjRequest['guy']['id']) && (is_string($ObjRequest['guy']['id']) || is_numeric($ObjRequest['guy']['id']))) $guyId = $ObjRequest['guy']['id']; else $guyId = null;
+					if (isset($ObjRequest['label']) && (is_string($ObjRequest['label']) || is_numeric($ObjRequest['label']))) $memberLabel = $ObjRequest['label']; else $memberLabel = null;
+					if (isset($ObjRequest['value']) && (is_string($ObjRequest['value']) || is_numeric($ObjRequest['value']))) $memberValue = $ObjRequest['value']; else $memberValue = null;
+					if ($tabId == null) {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}else if ($guyType == null || $guyId == null) {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}else if ($memberLabel == null || $memberValue == null) {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+					if ($guyType == "mode" && $guyId == "auto") {
+						$guyType = $g_user['mode']['type'];
+						$guyId = $g_user['mode']['id'];
+					}
+					$changeMessagesMembersOptions = array(
+						"action" => "change",
+						"id" => $tabId,
+						"label" => $memberLabel,
+						"value" => $memberValue,
+						"guy" => array(
+							"type" => $guyType,
+							"id" => $guyId
+						)
+					);
+					$changeMessagesMembers = $_messages->members($changeMessagesMembersOptions);
+					if (isset($changeMessagesMembers['return']) && $changeMessagesMembers['return'] == true) {
+						die(print json_encode(array("return" => true)));
+					}else if (isset($changeMessagesMembers['return'], $changeMessagesMembers['reason']) && $changeMessagesMembers['return'] == false) {
+						die(print json_encode(array("return" => false, "reason" => $changeMessagesMembers['reason'])));
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else if ($manage == "data") {
+				if ($action == "suggest") {
+					die(print json_encode(array("return" => true)));
+				}else if ($action == "add") {
+					if (isset($ObjRequest['id']) && is_numeric($ObjRequest['id'])) $tabId = $ObjRequest['id']; else $tabId = null;
+					if (isset($ObjRequest['content']) && (is_string($ObjRequest['content']) || is_numeric($ObjRequest['content']))) $messagesContent = $ObjRequest['content']; else $messagesContent = null;
+					if ($tabId == null || $messagesContent == null) {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+					$addMessagesDataOptions = array(
+						"action" => "add",
+						"id" => $tabId,
+						"content" => $messagesContent,
+					);
+					$addMessagesData = $_messages->data($addMessagesDataOptions);
+					if (isset($addMessagesData['return'], $addMessagesData['messages']) && $addMessagesData['return'] == true) {
+						die(print json_encode(array("return" => true)));
+					}else if (isset($addMessagesData['return'], $addMessagesData['reason']) && $addMessagesData['return'] == false) {
+						die(print json_encode(array("return" => false, "reason" => $addMessagesData['reason'])));
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+				}else if ($action == "get" || $action == "load") {
+					if (isset($ObjRequest['id']) && is_numeric($ObjRequest['id'])) $tabId = $ObjRequest['id']; else $tabId = null;
+					if (isset($ObjRequest['sort']) && is_string($ObjRequest['sort'])) $messagesSort = $ObjRequest['sort']; else $messagesSort = null;
+					if (isset($ObjRequest['label']) && is_string($ObjRequest['label'])) $messagesLabel = $ObjRequest['label']; else $messagesLabel = null;
+					if (isset($ObjRequest['value']) && (is_string($ObjRequest['value']) || is_numeric($ObjRequest['value']))) $messagesValue = $ObjRequest['value']; else $messagesValue = null;
+					if (isset($ObjRequest['limit']) && is_numeric($ObjRequest['limit'])) $messagesLimit = $ObjRequest['limit']; else $messagesLimit = null;
+					if (isset($ObjRequest['language']) && is_string($ObjRequest['language'])) $messagesLanguage = $ObjRequest['language']; else $messagesLanguage = null;
+					if ($tabId != null && $messagesSort == ">=<") {
+						if ($messagesLimit > 0) {
+							$messagesLimit = "LIMIT ".$messagesLimit;
+						}
+						$getMessagesDataOptions = array(
+							"action" => "get",
+							"id" => $tabId,
+							"sort" => $messagesSort,
+							"limit" => $messagesLimit,
+							"language" => $messagesLanguage
+						);
+					}else {
+						if ($tabId == null || $messagesSort == null || $messagesLabel == null || $messagesValue == null) {
+							die(print json_encode(array("return" => false, "reason" => "")));
+						}
+						if (in_array($messagesSort, [">", ">="])) {
+							$messagesOrder = "ORDER BY `id` ASC";
+						}else if (in_array($messagesSort, ["<", "<="])) {
+							$messagesOrder = "ORDER BY `id` DESC";
+						}else {
+							$messagesOrder = null;
+						}
+						if ($messagesLimit > 0) {
+							$messagesLimit = "LIMIT ".$messagesLimit;
+						}
+						$getMessagesDataOptions = array(
+							"action" => "get",
+							"id" => $tabId,
+							"sort" => $messagesSort, 
+							"label" => $messagesLabel, 
+							"value" => $messagesValue,
+							"order" => $messagesOrder,
+							"limit" => $messagesLimit,
+							"language" => $messagesLanguage
+						);
+					}
+					$getMessagesData = $_messages->data($getMessagesDataOptions);
+					if (isset($getMessagesData['return'], $getMessagesData['count'], $getMessagesData['data']) && $getMessagesData['return'] == true) {
+						foreach ($getMessagesData['data'] as $key => $thisMessagesData) {
+							if (isset($thisMessagesData['content']['text'])) {
+								$getMessagesData['data'][$key]['content']['text'] = $_tool->parseContent($thisMessagesData['content']['text']);
+							}
+							if (isset($thisMessagesData['content']['original'], $thisMessagesData['content']['translated']) && $thisMessagesData['content']['translated'] == true) {
+								$getMessagesData['data'][$key]['content']['original'] = $_tool->parseContent($thisMessagesData['content']['original']);
+							}
+							if (in_array($thisMessagesData['author']['type'], ["user", "users"])) {
+								$getGuyData = $_user->profile(array("action" => "get", "rows" => ["fullname", "username", "link", "avatar.small"], "label" => "id", "value" => $thisMessagesData['author']['id']));
+								if (isset($getGuyData['return'], $getGuyData['data'][0]) && $getGuyData['return'] == true) {
+									$getMessagesData['data'][$key]['author']['name'] = $getGuyData['data'][0]['fullname'];
+									$getMessagesData['data'][$key]['author']['tag'] = $getGuyData['data'][0]['username'];
+									$getMessagesData['data'][$key]['author']['link'] = $getGuyData['data'][0]['link'];
+									$getMessagesData['data'][$key]['author']['avatar'] = $getGuyData['data'][0]['avatar.small'];
+								}
+							}
+							if ($thisMessagesData['author']['type'] == $g_user['mode']['type'] && $thisMessagesData['author']['id'] == $g_user['mode']['id']) {
+								$getMessagesData['data'][$key]['is_author'] = true;
+							}else {
+								$getMessagesData['data'][$key]['is_author'] = false;
+							}
+						}
+						if (in_array($messagesSort, [">=<", ">", ">="])) {
+						}
+						die(print json_encode(array("return" => true, "count" => $getMessagesData['count'], "data" => $getMessagesData['data'])));
+					}else if (isset($getMessagesData['return'], $getMessagesData['reason']) && $getMessagesData['return'] == false) {
+						die(print json_encode(array("return" => false, "reason" => $getMessagesData['reason'])));
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+				}else if ($action == "delete") {
+					if (isset($ObjRequest['id']) && is_numeric($ObjRequest['id'])) $tabId = $ObjRequest['id']; else $tabId = null;
+					if ($tabId == null) {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+					$deleteMessagesViewsOptions = array(
+						"action" => "delete",
+						"id" => $tabId,
+						"guy" => $g_user['mode']
+					);
+					$deleteMessagesData = $_messages->views($deleteMessagesViewsOptions);
+					if (isset($deleteMessagesData['return']) && $deleteMessagesData['return'] == true) {
+						die(print json_encode(array("return" => true)));
+					}else if (isset($deleteMessagesData['return'], $deleteMessagesData['reason']) && $deleteMessagesData['return'] == false) {
+						die(print json_encode(array("return" => false, "reason" => $deleteMessagesData['reason'])));
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else if (in_array($manage, ["type", "typing"])) {
+				if ($action == "add") {
+					if (isset($ObjRequest['id']) && is_numeric($ObjRequest['id'])) $tabId = $ObjRequest['id']; else $tabId = null;
+					if ($tabId == null) {
+						die(print json_encode(array("return" => false, "reason" => "1")));
+					}
+					$addMessagesTypingOptions = array(
+						"action" => "add",
+						"id" => $tabId,
+						"guy" => $g_user['mode']
+					);
+					$addMessagesTyping = $_messages->typing($addMessagesTypingOptions);
+					if (isset($addMessagesTyping['return']) && $addMessagesTyping['return'] == true) {
+						die(print json_encode(array("return" => true)));
+					}else if (isset($addMessagesTyping['return'], $addMessagesTyping['reason']) && $addMessagesTyping['return'] == false) {
+						die(print json_encode(array("return" => false, "reason" => $addMessagesTyping['reason'])));
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+				}else if ($action == "get") {
+					if (isset($ObjRequest['id']) && is_numeric($ObjRequest['id'])) $tabId = $ObjRequest['id']; else $tabId = null;
+					if (isset($ObjRequest['me']) && is_bool($ObjRequest['me'])) $getMe = $ObjRequest['me']; else $getMe = true;
+					if ($tabId == null) {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+					$getMessagesTypingOptions = array(
+						"action" => "get",
+						"id" => $tabId,
+						"guy" => $g_user['mode']
+					);
+					$getMessagesTyping = $_messages->typing($getMessagesTypingOptions);
+					if (isset($getMessagesTyping['return'], $getMessagesTyping['data']) && $getMessagesTyping['return'] == true) {
+						foreach ($getMessagesTyping['data']['typing'] as $key => $getMessagesTypingDataThis) {
+							if (!$getMe) {
+								if ($getMessagesTypingDataThis['guy']['type'] == $g_user['mode']['type'] && $getMessagesTypingDataThis['guy']['id'] == $g_user['mode']['id']) {
+									unset($getMessagesTyping['data']['typing'][$key]);
+									continue;
+								}
+							}else if ($getMe == true) {
+								if ($getMessagesTypingDataThis['guy']['type'] == $g_user['mode']['type'] && $getMessagesTypingDataThis['guy']['id'] == $g_user['mode']['id']) {
+									$getMessagesTyping['data']['typing'][$key]['is_author'] = true;
+								}else {
+									$getMessagesTyping['data']['typing'][$key]['is_author'] = false;
+								}
+							}
+							if (in_array($getMessagesTypingDataThis['guy']['type'], ["user", "users"])) {
+								$getGuyData = $_user->getInfo(array("rows" => "`fullname`, `username`, `link`, `avatar.small`", "label" => "id", "value" => $getMessagesTypingDataThis['guy']['id']));
+								if (isset($getGuyData['return'], $getGuyData['data'][0]) && $getGuyData['return'] == true) {
+									$getMessagesTyping['data']['typing'][$key]['guy']['name'] = $getGuyData['data'][0]['fullname'];
+									$getMessagesTyping['data']['typing'][$key]['guy']['tag'] = $getGuyData['data'][0]['username'];
+									$getMessagesTyping['data']['typing'][$key]['guy']['link'] = $getGuyData['data'][0]['link'];
+									$getMessagesTyping['data']['typing'][$key]['guy']['avatar'] = $getGuyData['data'][0]['avatar.small'];
+								}
+							}
+						}
+						die(print json_encode(array("return" => true, "data" => $getMessagesTyping['data'])));
+					}else if (isset($getMessagesTyping['return'], $getMessagesTyping['reason']) && $getMessagesTyping['return'] == false) {
+						die(print json_encode(array("return" => false, "reason" => $getMessagesTyping['reason'])));
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+				}else if ($action == "remove" || $action == "delete") {
+					if (isset($ObjRequest['id']) && is_numeric($ObjRequest['id'])) $tabId = $ObjRequest['id']; else $tabId = null;
+					if ($tabId == null) {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+					$deleteMessagesTypingOptions = array(
+						"action" => "delete",
+						"id" => $tabId,
+						"guy" => $g_user['mode']
+					);
+					$deleteMessagesTyping = $_messages->typing($deleteMessagesTypingOptions);
+					if (isset($deleteMessagesTyping['return']) && $deleteMessagesTyping['return'] == true) {
+						die(print json_encode(array("return" => true)));
+					}else if (isset($deleteMessagesTyping['return'], $deleteMessagesTyping['reason']) && $deleteMessagesTyping['return'] == false) {
+						die(print json_encode(array("return" => false, "reason" => $deleteMessagesTyping['reason'])));
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else if (in_array($manage, ["view", "views", "seen"])) {
+				if ($action == "add") {
+					if (isset($ObjRequest['id']) && is_numeric($ObjRequest['id'])) $tabId = $ObjRequest['id']; else $tabId = null;
+					if ($tabId == null) {
+						die(print json_encode(array("return" => false, "reason" => "1")));
+					}
+					$addMessagesViewsOptions = array(
+						"action" => "add",
+						"id" => $tabId,
+						"guy" => $g_user['mode']
+					);
+					$addMessagesViews = $_messages->views($addMessagesViewsOptions);
+					if (isset($addMessagesViews['return']) && $addMessagesViews['return'] == true) {
+						die(print json_encode(array("return" => true)));
+					}else if (isset($addMessagesViews['return'], $addMessagesViews['reason']) && $addMessagesViews['return'] == false) {
+						die(print json_encode(array("return" => false, "reason" => $addMessagesViews['reason'])));
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "1")));
+					}
+				}else if ($action == "get") {
+					if (isset($ObjRequest['id']) && is_numeric($ObjRequest['id'])) $tabId = $ObjRequest['id']; else $tabId = null;
+					if (isset($ObjRequest['messages']) && is_numeric($ObjRequest['messages'])) $messagesId = $ObjRequest['messages']; else $messagesId = null;
+					if (isset($ObjRequest['me']) && is_bool($ObjRequest['me'])) $getMe = $ObjRequest['me']; else $getMe = true;
+					if ($tabId == null) {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+					$getMessagesViewsOptions = array(
+						"action" => "get",
+						"id" => $tabId,
+						"messages" => $messagesId,
+						"guy" => $g_user['mode']
+					);
+					$getMessagesViews = $_messages->views($getMessagesViewsOptions);
+					if (isset($getMessagesViews['return'], $getMessagesViews['data']) && $getMessagesViews['return'] == true) {
+						foreach ($getMessagesViews['data'] as $thisType => $getMessagesViewsThis) {
+							foreach ($getMessagesViewsThis as $key => $getMessagesViewsDataThis) {
+								if (!$getMe) {
+									if ($getMessagesViewsDataThis['guy']['type'] == $g_user['mode']['type'] && $getMessagesViewsDataThis['guy']['id'] == $g_user['mode']['id']) {
+										unset($getMessagesViews['data'][$thisType][$key]);
+										continue;
+									}
+								}else if ($getMe == true) {
+									if ($getMessagesViewsDataThis['guy']['type'] == $g_user['mode']['type'] && $getMessagesViewsDataThis['guy']['id'] == $g_user['mode']['id']) {
+										$getMessagesViews['data'][$thisType][$key]['is_author'] = true;
+									}else {
+										$getMessagesViews['data'][$thisType][$key]['is_author'] = false;
+									}
+								}
+								if (in_array($getMessagesViewsDataThis['guy']['type'], ["user", "users"])) {
+									$getGuyData = $_user->getInfo(array("rows" => "`fullname`, `username`, `link`, `avatar.small`", "label" => "id", "value" => $getMessagesViewsDataThis['guy']['id']));
+									if (isset($getGuyData['return'], $getGuyData['data'][0]) && $getGuyData['return'] == true) {
+										$getMessagesViews['data'][$thisType][$key]['guy']['name'] = $getGuyData['data'][0]['fullname'];
+										$getMessagesViews['data'][$thisType][$key]['guy']['tag'] = $getGuyData['data'][0]['username'];
+										$getMessagesViews['data'][$thisType][$key]['guy']['link'] = $getGuyData['data'][0]['link'];
+										$getMessagesViews['data'][$thisType][$key]['guy']['avatar'] = $getGuyData['data'][0]['avatar.small'];
+									}
+								}
+							}
+						}
+						die(print json_encode(array("return" => true, "data" => $getMessagesViews['data'])));
+					}else if (isset($getMessagesViews['return'], $getMessagesViews['reason']) && $getMessagesViews['return'] == false) {
+						die(print json_encode(array("return" => false, "reason" => $getMessagesViews['reason'])));
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+				}else if ($action == "remove" || $action == "delete") {
+					if (isset($ObjRequest['id']) && is_numeric($ObjRequest['id'])) $tabId = $ObjRequest['id']; else $tabId = null;
+					if ($tabId == null) {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+					$deleteMessagesViewsOptions = array(
+						"action" => "delete",
+						"id" => $tabId,
+						"guy" => $g_user['mode']
+					);
+					$deleteMessagesViews = $_messages->views($deleteMessagesViewsOptions);
+					if (isset($deleteMessagesViews['return']) && $deleteMessagesViews['return'] == true) {
+						die(print json_encode(array("return" => true)));
+					}else if (isset($deleteMessagesViews['return'], $deleteMessagesViews['reason']) && $deleteMessagesViews['return'] == false) {
+						die(print json_encode(array("return" => false, "reason" => $deleteMessagesViews['reason'])));
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else {
+				die(print json_encode(array("return" => false, "reason" => "")));
+			}
+		}else {
+			die(print json_encode(array("return" => false, "reason" => "")));
+		}
+	}else if ($port == "explorer" && $token == $g_client['token']['action']['explorer']) {
+		if ($type == "photos") {
+			if (isset($ObjRequest['local']) && is_string($ObjRequest['local'])) $local = $ObjRequest['local']; else $local = null;
+			if ($local == "cache") {
+				if ($action == "get") {
+					if (isset($ObjRequest['class']) && is_string($ObjRequest['class'])) $class = $ObjRequest['class']; else $class = null;
+					if ($class == "list") {
+						$checkExistsRequest = "SELECT `name` FROM `photos_cache` WHERE `author.type` = '{$g_user['mode']['type']}' AND `author.id` = '{$g_user['mode']['id']}' AND `copy` = '0' ORDER BY `id` ASC";
+						$checkExistsQuery = mysqli_query($_db->port('beta'), $checkExistsRequest);
+						if ($checkExistsQuery) $checkExists = mysqli_num_rows($checkExistsQuery); else $checkExists = 0;
+						if ($checkExists == 0) {
+							die(print json_encode(array("return" => true, "data" => array("file" => null))));
+						}else {
+							$fileArr = array();
+							while ($fileFetch = mysqli_fetch_assoc($checkExistsQuery)) {
+								$getMediaCacheOptions = array("guy" => $g_user['mode'], "user" => array("id" => $g_user['id']), "action" => "get", "label" => "name", "value" => $fileFetch['name']);
+								$getMediaCache = $_media->cache("photos", $getMediaCacheOptions);
+								if (isset($getMediaCache['return'], $getMediaCache['data']) && $getMediaCache['return'] == true) {
+									$getData = $getMediaCache['data'][0];
+									if (isset($getData['path'])) {
+										unset($getData['path']);
+									}
+									if (isset($getData['copy'])) {
+										unset($getData['copy']);
+									}
+									if (isset($getData['tmp'])) {
+										$getData['link'] = $_tool->links('photos/cache/'.$getData['name']);
+										unset($getData['tmp']);
+									}
+									if (isset($getData['size'])) {
+										$getData['size'] = $_tool->convertSize($getData['size']);
+									}
+									$getData['type'] = "photos";
+									$getData['local'] = "cache";
+									$getData['verify'] = "false";
+									$fileArr['file'][] = $getData;
+								}else {
+									continue;
+								}
+							}
+							die(print json_encode(array("return" => true, "data" => $fileArr)));
+						}
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else if ($local == "sync") {
+				die(print json_encode(array("return" => true, "data" => array("file" => null))));
+			}else {
+				die(print json_encode(array("return" => false, "reason" => "")));
+			}
+		}else if ($type == "music") {
+			if (isset($ObjRequest['local']) && is_string($ObjRequest['local'])) $local = $ObjRequest['local']; else $local = null;
+			if ($local == "cache") {
+				if ($action == "get") {
+					if (isset($ObjRequest['class']) && is_string($ObjRequest['class'])) $class = $ObjRequest['class']; else $class = null;
+					if ($class == "list") {
+						$checkExistsRequest = "SELECT `name` FROM `music_cache` WHERE `author.type` = '{$g_user['mode']['type']}' AND `author.id` = '{$g_user['mode']['id']}' AND `copy` = '0' ORDER BY `id` ASC";
+						$checkExistsQuery = mysqli_query($_db->port('beta'), $checkExistsRequest);
+						if ($checkExistsQuery) $checkExists = mysqli_num_rows($checkExistsQuery); else $checkExists = 0;
+						if ($checkExists == 0) {
+							die(print json_encode(array("return" => true, "data" => array("file" => null))));
+						}else {
+							$fileArr = array();
+							while ($fileFetch = mysqli_fetch_assoc($checkExistsQuery)) {
+								$getMediaCacheOptions = array("guy" => $g_user['mode'], "user" => array("id" => $g_user['id']), "action" => "get", "label" => "name", "value" => $fileFetch['name']);
+								$getMediaCache = $_media->cache("music", $getMediaCacheOptions);
+								if (isset($getMediaCache['return'], $getMediaCache['data']) && $getMediaCache['return'] == true) {
+									$getData = $getMediaCache['data'][0];
+									if (isset($getData['path'])) {
+										unset($getData['path']);
+									}
+									if (isset($getData['copy'])) {
+										unset($getData['copy']);
+									}
+									if (isset($getData['tmp'])) {
+										$getData['link'] = $_tool->links('music/cache/'.$getData['name']);
+										unset($getData['tmp']);
+									}
+									if (isset($getData['size'])) {
+										$getData['size'] = $_tool->convertSize($getData['size']);
+									}
+									if (isset($getData['duration']) && $getData['duration'] > 0) {
+										$getData['duration'] = $_tool->convertTimetoDuration($getData['duration']);
+									}else {
+										$getData['duration'] = null;
+									}
+									$getData['type'] = "music";
+									$getData['local'] = "cache";
+									$getData['verify'] = "false";
+									$fileArr['file'][] = $getData;
+								}else {
+									continue;
+								}
+							}
+							die(print json_encode(array("return" => true, "data" => $fileArr)));
+						}
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else if ($local == "sync") {
+				die(print json_encode(array("return" => true, "data" => array("file" => null))));
+			}else {
+				die(print json_encode(array("return" => false, "reason" => "")));
+			}
+		}else if ($type == "videos") {
+			if (isset($ObjRequest['local']) && is_string($ObjRequest['local'])) $local = $ObjRequest['local']; else $local = null;
+			if ($local == "cache") {
+				if ($action == "get") {
+					if (isset($ObjRequest['class']) && is_string($ObjRequest['class'])) $class = $ObjRequest['class']; else $class = null;
+					if ($class == "list") {
+						$checkExistsRequest = "SELECT `name` FROM `videos_cache` WHERE `author.type` = '{$g_user['mode']['type']}' AND `author.id` = '{$g_user['mode']['id']}' AND `copy` = '0' ORDER BY `id` ASC";
+						$checkExistsQuery = mysqli_query($_db->port('beta'), $checkExistsRequest);
+						if (!$checkExistsQuery) {
+							//.
+						}
+						if ($checkExistsQuery) $checkExists = mysqli_num_rows($checkExistsQuery); else $checkExists = 0;
+						if ($checkExists == 0) {
+							die(print json_encode(array("return" => true, "data" => array("file" => null))));
+						}else {
+							$fileArr = array();
+							while ($fileFetch = mysqli_fetch_assoc($checkExistsQuery)) {
+								$getMediaCacheOptions = array("guy" => $g_user['mode'], "user" => array("id" => $g_user['id']), "action" => "get", "label" => "name", "value" => $fileFetch['name']);
+								$getMediaCache = $_media->cache("videos", $getMediaCacheOptions);
+								if (isset($getMediaCache['return'], $getMediaCache['data'], $getMediaCache['data'][0]) && $getMediaCache['return'] == true) {
+									$getData = $getMediaCache['data'][0];
+									if (isset($getData['path'])) {
+										unset($getData['path']);
+									}
+									if (isset($getData['copy'])) {
+										unset($getData['copy']);
+									}
+									if (isset($getData['tmp'])) {
+										$getData['link'] = $_tool->links('videos/cache/'.$getData['name']);
+										unset($getData['tmp']);
+									}
+									if (isset($getData['thumbnail'])) {
+										$getData['thumbnail'] = $_tool->links('videos/cache/thumbnail/'.$getData['thumbnail']);
+									}
+									if (isset($getData['size'])) {
+										$getData['size'] = $_tool->convertSize($getData['size']);
+									}
+									if (isset($getData['duration']) && $getData['duration'] > 0) {
+										$getData['duration'] = $_tool->convertTimetoDuration($getData['duration']);
+									}else {
+										$getData['duration'] = null;
+									}
+									$getData['type'] = "videos";
+									$getData['local'] = "cache";
+									$getData['verify'] = "false";
+									$fileArr['file'][] = $getData;
+								}else {
+									continue;
+								}
+							}
+							die(print json_encode(array("return" => true, "data" => $fileArr, "s" => $fileArr)));
+						}
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else if ($local == "sync") {
+				die(print json_encode(array("return" => true, "data" => array("file" => null))));
+			}else {
+				die(print json_encode(array("return" => false, "reason" => "")));
+			}
+		}else {
+			die(print json_encode(array("return" => false, "reason" => "")));
+		}
+	}else if ($port == "ajaxify" && $token == $g_client['token']['action']['ajaxify']) {
+		/*
+		if (isset($ObjRequest['url']) && is_string($ObjRequest['url'])) $url = $ObjRequest['url']; else $url = null;
+		if ($url != null) {
+			require ("source/class/html_dom.php");
+			if (preg_match("/((http|https|ftp|ftps)(:\/\/)(www\.)?(localhost\/giccos)($|[\S]+))/", $url) == true) {
+				if ($_tool->siteDie($url)) {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}else {
+					// print json_encode(array("return" => true, "direct" => true)); die();
+				}
+				$htmlPage = $_tool->curl($url, 5, array("cookie" => true, "method" => "POST", "form" => array("token" => "")));
+				if (isset($htmlPage['return']) && $htmlPage['return'] == true) {
+					$pageDom = new simple_html_dom(null, true, true, DEFAULT_TARGET_CHARSET, true, DEFAULT_BR_TEXT, DEFAULT_SPAN_TEXT);
+					$pageDom->load($htmlPage['data'], true, true);
+					$pageMain = array();
+					$pageMain['head'] = $pageDom->find("head", 0)->outertext;
+					$pageMain['body'] = $pageDom->find("body", 0)->outertext;
+					// $pageMain['footer'] = $pageDom->find("footer", 0)->outertext;
+					// $pageMain = $pageDom->find("#gMain", 0)->outertext;
+					// $pageMain = preg_replace('#<script(.*?)>(.*?)</script>#is', '', $pageMain);
+					$pageMainDom = new DOMDocument();
+					libxml_use_internal_errors(true);
+					$pageMainDom->loadHTML($pageDom);
+					libxml_use_internal_errors(false);
+					$scriptItems = $pageMainDom->getElementsByTagName('script');
+					$scriptTags = array();
+					foreach ($scriptItems as $scriptItem) {
+						$scriptTags[] = array(
+						    'src' => $scriptItem->getAttribute('src'),
+						    'outerHTML' => $pageMainDom->saveHTML($scriptItem),
+						    'innerHTML' => $pageMainDom->saveHTML($scriptItem->firstChild),
+					  	);
+					}
+					$callbackTags = array();
+					$cssTags = array();
+					$data = array("path" => $url, "title" => $pageDom->find("title", 0)->plaintext, "html" => $pageMain, "callback" => $callbackTags, "script" => $scriptTags, "css" => $cssTags);
+					die(print json_encode(array("return" => true, "direct" => false, "data" => $data)));
+				}else {
+					die(print json_encode(array("return" => false, "reason" => $htmlPage['reason'])));
+				}
+			}else {
+				die(print json_encode(array("return" => false, "reason" => "")));
+			}
+		}else {
+			die(print json_encode(array("return" => false, "reason" => "")));
+		}
+		*/
+		die(print json_encode(array("return" => false, "reason" => "")));
+	}else if ($port == "wall" && $token == $g_client['token']['action']['wall']) {
+		if ($type == "friends") {
+			if ($action == "get" || $action == "load") {
+				if (isset($ObjRequest['wall_id']) && (is_string($ObjRequest['wall_id']) || is_numeric($ObjRequest['wall_id']))) $wallId = $ObjRequest['wall_id']; else $wallId = 0;
+				if (isset($ObjRequest['rows']) && is_string($ObjRequest['rows'])) $rows = $ObjRequest['rows']; else $rows = null;
+				if (isset($ObjRequest['profile']) && in_array($ObjRequest['profile'], [true, false])) $getProfile = $ObjRequest['profile']; else $getProfile = false;
+				if ($wallId > 0 && $rows != null) {
+					if (in_array($rows, ["all_friends", "mutual_friends", "live", "country", "workplaces", "school"])) {
+						if (isset($ObjRequest['friends_id']) && is_string($ObjRequest['friends_id'])) $friendsId = $ObjRequest['friends_id']; else $friendsId = 0;
+						if (isset($ObjRequest['order']) && is_string($ObjRequest['order'])) $order = $ObjRequest['order']; else $order = null;
+						if (isset($ObjRequest['limit']) && (is_string($ObjRequest['limit']) || is_numeric($ObjRequest['limit']))) $limit = $ObjRequest['limit']; else $limit = null;
+						if (in_array($rows, ["mutual_friends", "live", "country"]) && $g_user['mode']['type'] != "user") {
+							die(print json_encode(array("return" => false, "reason" => "1")));
+						}
+						if ($order == null) {
+							die(print json_encode(array("return" => false, "reason" => "2")));
+						}
+						$wallFriendsOptions = array(
+							"action" => "get", 
+							"wall_id" => $wallId,
+							"rows" => $rows,
+							"friends_id" => $friendsId,
+							"order" => $order,
+							"limit" => "LIMIT ".$limit
+						);
+						$getWallFriends = $_wall->friends($wallFriendsOptions);
+						if (isset($getWallFriends['return'], $getWallFriends['data'], $getWallFriends['count']) && $getWallFriends['return'] == true) {
+							if (isset($getProfile) && $getProfile == true) {
+								foreach ($getWallFriends['data'] as $key => $thisUserId) {
+									$getUserInfo = $_user->profile(array("action" => "get", "rows" => ['id', 'username', 'avatar.small', 'fullname', 'link'], "label" => "id", "value" => $thisUserId['user.id'], "limit" => "LIMIT 1"));
+									if (isset($getUserInfo['return'], $getUserInfo['data'], $getUserInfo['data'][0]) && $getUserInfo['return'] == true) {
+										$thisUserInfo = $getUserInfo['data'][0];
+										$getWallFriends['data'][$key] = array(
+											"friends_id" => $thisUserId['id'],
+											"id" => $thisUserInfo['id'],
+											"tag" => $thisUserInfo['username'],
+											"name" => $thisUserInfo['fullname'],
+											"avatar" => $thisUserInfo['avatar.small'],
+											"link" => $thisUserInfo['link']
+										);
+										if ($getWallFriends['data'][$key]['id'] == $g_user['id']) {
+											$getWallFriends['data'][$key]['is_you'] = true;
+										}else {
+											$countFriendsQuery = mysqli_query($_db->port('beta'), "SELECT `id` FROM `friends` WHERE `user.id` = '{$g_user['id']}' AND `guy.id` = '{$thisUserInfo['id']}' LIMIT 1");
+											if ($countFriendsQuery == true && mysqli_num_rows($countFriendsQuery) == 0) {
+												$getFriendsMutual = $_user->getFriendsMutual(array("userId" => $thisUserInfo['id'], "guyId" => $g_user['id']));
+												if (isset($getFriendsMutual['return']) && $getFriendsMutual['return'] == true) {
+													$getWallFriends['data'][$key]['mutual_friends'] = count($getFriendsMutual['data']);
+												}
+												$getSendRequestQuery = mysqli_query($_db->port('beta'), "SELECT `id` FROM `friends_request` WHERE `user.id` = '{$g_user['id']}' AND `guy.id` = '{$thisUserInfo['id']}' LIMIT 1");
+												if ($getSendRequestQuery == true && mysqli_num_rows($getSendRequestQuery) > 0) {
+													$getWallFriends['data'][$key]['send_request'] = true;
+												}
+												$getWaitingRequestQuery = mysqli_query($_db->port('beta'), "SELECT `id` FROM `friends_request` WHERE `guy.id` = '{$g_user['id']}' AND `user.id` = '{$thisUserInfo['id']}' LIMIT 1");
+												if ($getSendRequestQuery == true && mysqli_num_rows($getSendRequestQuery) > 0) {
+													$getWallFriends['data'][$key]['waiting_request'] = true;
+												}
+											}else if ($countFriendsQuery == true && mysqli_num_rows($countFriendsQuery) > 0) {
+												$getWallFriends['data'][$key]['is_friend'] = true;
+											}
+										}
+									}else {
+										unset($getWallFriends['data']);
+										$getWallFriends['count']--;
+									}
+								}
+							}
+							die(print json_encode(array("return" => true, "data" => $getWallFriends['data'], "count" => $getWallFriends['count'])));
+						}else if (isset($getWallFriends['return'], $getWallFriends['reason']) && $getWallFriends['return'] == false) {
+							die(print json_encode(array("return" => false, "reason" => $getWallFriends['reason'])));
+						}else {
+							die(print json_encode(array("return" => false, "reason" => "")));
+						}
+						die(print json_encode(array("return" => true)));
+					}else {
+						die(print json_encode(array("return" => false, "reason" => "")));
+					}
+				}else {
+					die(print json_encode(array("return" => false, "reason" => "")));
+				}
+			}else {
+				die(print json_encode(array("return" => false, "reason" => "")));
+			}
+		}else {
+			die(print json_encode(array("return" => false, "reason" => "")));
+		}
+	}else {
+		die(header("HTTP/1.1 404 Not Found"));
+	}
+}else {
+	die(header("HTTP/1.1 404 Not Found"));
+}
+?>
