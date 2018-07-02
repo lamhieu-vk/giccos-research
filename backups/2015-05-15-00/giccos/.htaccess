@@ -1,0 +1,50 @@
+# Secure.
+Order Deny,Allow
+Deny from all
+Allow from 127.0.0.1
+Allow from ::1
+Allow from localhost
+
+# Config.
+IndexIgnore *
+Options All -Indexes
+Options +FollowSymLinks -MultiViews
+RewriteEngine on 
+RewriteBase /giccos/
+RewriteCond %{REQUEST_FILENAME} -d [OR] 
+RewriteCond %{REQUEST_FILENAME} -s
+RewriteRule ^.*$ - [L]
+
+# Set Encoding.
+AddDefaultCharset On
+AddDefaultCharset UTF-8
+
+# Set default.
+DirectoryIndex index.php
+Options All -Indexes
+
+# Get request.
+RewriteRule (.*) index.php
+
+# Remove ext.
+RewriteCond %{THE_REQUEST} ^[A-Z]{3,}\s([^.]+$)\.php [NC]
+RewriteRule ^ %1 [R,L]
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}.php -f
+RewriteRule ^(.*?)/?$ $1.php [L]
+
+# Error.
+ErrorDocument 404 /oops.php
+
+# PHP.
+php_value sql.safe_mode 0
+php_value memory_limit 256M
+php_value allow_url_fopen 1
+php_value allow_url_include 1
+php_value file_uploads 1
+php_value max_file_uploads 1000
+php_value upload_max_filesize 1024M
+php_value post_max_size 1024M
+php_value max_execution_time 100
+php_value display_errors 1
+php_value error_log source/logs/error_php
