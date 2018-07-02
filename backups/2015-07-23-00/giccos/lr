@@ -1,0 +1,4 @@
+SELECT `id`, ( 6371 * acos( cos( radians(9.034963) ) * cos( radians( latitude ) ) * cos( radians( longitude ) - radians(105.428246) ) + sin( radians(9.034963) ) * sin( radians( latitude ) ) ) ) AS `distance` FROM `maps_places` HAVING `distance` <= '15'
+
+
+SELECT `id` FROM `maps_places` WHERE ( 6371 * acos( cos( radians(9.034963) ) * cos( radians( `latitude` ) ) * cos( radians( `longitude` ) - radians(105.428246) ) + sin( radians(9.034963) ) * sin( radians( `latitude` ) ) ) ) <= '15'
