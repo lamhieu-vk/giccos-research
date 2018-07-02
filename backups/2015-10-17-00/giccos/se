@@ -1,0 +1,257 @@
+//. $x = $_mailer->id(array("action" => "add", "info" => array("type" => "support", "host" => "smtp.gmail.com", "username" => "lamhieu.vk@gmail.com", "password" => "password", "secure" => "tls", "port" => 587, "from" => array("email" => "mailer@giccos.com", "name" => "Giccos Mailer"), "reply" => array("email" => "support@giccos.com", "name" => "Giccos Support"))));
+
+
+SELECT * FROM `ip_location` WHERE INET_ATON("113.169.119.201") BETWEEN INET_ATON(`ip.begin`) AND INET_ATON(`ip.end`);
+
+
+LOAD DATA LOCAL INFILE 'C:/XAMPP/htdocs/giccos/x.csv'
+INTO TABLE `ip_location`
+FIELDS TERMINATED BY ','
+    ENCLOSED BY '"'
+LINES TERMINATED BY '\r\n'
+(`ip.begin`, `ip.end`, `country.code`, `country`, `region`, `city`, `latitude`, `longitude`, `zipcode`, `timezone`);
+
+
+ 2>&1
+
+# dailymotion.
+http://www.dailymotion.com/video/x2u6c6f_tch15-daily-journal-cello-qualifying-candidate_music
+http://dai.ly/x2u6c6f
+/* 
+<iframe 
+	frameborder="0" 
+	width="480" 
+	height="270" 
+	src="//www.dailymotion.com/embed/video/x2u6c6f" 
+	allowfullscreen
+></iframe>
+*/
+
+# youtube.
+https://www.youtube.com/watch?v=_OStYg1-NYA
+https://youtu.be/_OStYg1-NYA
+/*
+<iframe 
+	width="560" 
+	height="315" 
+	src="https://www.youtube.com/embed/_OStYg1-NYA" 
+	frameborder="0" 
+	allowfullscreen
+></iframe>
+*/
+
+# vimeo.
+https://vimeo.com/130731671
+https://vimeo.com/channels/staffpicks/130731671
+/*
+<iframe 
+	src="https://player.vimeo.com/video/130731671?color=ffffff" 
+	width="500" 
+	height="208" 
+	frameborder="0" 
+	webkitallowfullscreen 
+	mozallowfullscreen 
+	allowfullscreen
+></iframe>
+*/
+
+# vine.
+https://vine.co/v/eiUXKO5Vmj9
+/*
+<iframe 
+	src="https://vine.co/v/eiUXKO5Vmj9/embed/simple" 
+	width="480" 
+	height="480" 
+	frameborder="0"
+></iframe>
+*/
+
+# flickr.
+https://www.flickr.com/photos/131636999@N03/17222125072/
+/*
+<iframe 
+	src="https://www.flickr.com/photos/131636999@N03/17222125072/player/" 
+	width="2048" 
+	height="1365" 
+	frameborder="0" 
+	allowfullscreen 
+	webkitallowfullscreen 
+	mozallowfullscreen 
+	oallowfullscreen 
+	msallowfullscreen
+></iframe>
+*/
+
+
+# myspace.
+https://myspace.com/myspace/video/the-pedicab-interviews-chris-cole/109546118
+/*
+<iframe 
+	src="//media.myspace.com/play/video/the-pedicab-interviews-chris-cole-109546118" 
+	width="480" 
+	height="270" 
+	frameborder="0" 
+	allowtransparency="true" 
+	webkitallowfullscreen 
+	mozallowfullscreen 
+	allowfullscreen
+></iframe>
+*/
+https://myspace.com/iamsebas/music/song/boyfriend-remix-87571429-97164009
+/*
+<iframe 
+	src="//media.myspace.com/play/song/boyfriend-remix-87571429-97164009" 
+	width="300" 
+	height="90" 
+	frameborder="0" 
+	allowtransparency="true" 
+	webkitallowfullscreen 
+	mozallowfullscreen 
+	allowfullscreen
+></iframe>
+*/
+
+
+# ted.
+http://www.ted.com/talks/marlene_zuk_what_we_learn_from_insects_kinky_sex_lives
+/*
+<iframe 
+	src="https://embed-ssl.ted.com/talks/marlene_zuk_what_we_learn_from_insects_kinky_sex_lives.html" 
+	width="640" 
+	height="360" 
+	frameborder="0" 
+	scrolling="no" 
+	webkitallowfullscreen 
+	mozallowfullscreen 
+	allowfullscreen
+></iframe>
+*/
+
+# 
+clip.vn.
+http://clip.vn/watch/Dinh-Manh-Ninh-Summer-nhac-che-cuc-ba-dao-ve-mua-he-nong-bong,RX3d/
+/*
+<iframe 
+	src="http://clip.vn/embed/RX3d" 
+	width="640" 
+	height="360" 
+	frameborder="0"
+	webkitallowfullscreen 
+	mozallowfullscreen 
+	allowfullscreen
+></iframe>
+*/
+
+
+# vid.
+https://vid.me/xKiI
+/*
+<iframe 
+	src="https://vid.me/e/xKiI?stats=1&amp;tools=1" 
+	width="640" 
+	height="360" 
+	frameborder="0"
+	webkitallowfullscreen 
+	mozallowfullscreen 
+	allowfullscreen
+></iframe>
+*/
+
+<tbody style='margin: 10px auto;'>
+              <tr align='center'>
+                  <td>
+                      <table border='0' cellspacing='0' cellpadding='0' style='padding: 10px;width:500px;background: #FFF;border: none;'>
+                          <tbody>
+                              <tr>
+                                  <td>
+                                      <table bgcolor='#4184F3' width='100%' border='0' cellspacing='0' cellpadding='0' style='width:500px;background-color: #666;border:none;'>
+                                          <tbody>
+                                              <tr>
+                                                  <td colspan='3' style='height: 70px;border-bottom: 2px solid #FFF;'>
+                                                    <div style='display: inline-block;vertical-align: top;text-indent: 30px;'>
+                                                      <a style='cursor: pointer;font-family: Roboto-Regular,Helvetica,Arial,sans-serif;font-size: 32px; color: #FFF;line-height: 1.2;font-weight:bold;'>Giccos Inc</a>
+                                                    </div>
+                                                    <div style='display: inline-block;vertical-align: top;margin-top: 2px;width: 270px;text-align: right;'>
+                                                      <a style='cursor: pointer;font-family: Roboto-Regular,Helvetica,Arial,sans-serif;font-size: 18px; color: #FFF;line-height: 1.2;font-weight:bold;'>Mailer</a><br>
+                                                      <a style='font-family: Roboto-Regular,Helvetica,Arial,sans-serif;font-size: 12px; color: #CCC;line-height: 1.2;font-weight:normal;text-decoration: none;' href='#'>#{_mailerLogToken_}</a>
+                                                    </div>
+                                                  </td>
+                                              </tr>
+                                              <tr><td height='10px' colspan='3'></td></tr>
+                                              <tr>
+                                                  <td width='30px'></td>
+                                                  <td style='font-family:Roboto-Regular,Helvetica,Arial,sans-serif;font-size:16px;color:#ffffff;line-height:1.25'>verify user account</td>
+                                                  <td width='30px'></td>
+                                              </tr>
+                                              <tr><td height='10px' colspan='3'></td></tr>
+                                          </tbody>
+                                      </table>
+                                  </td>
+                              </tr>
+                              <tr>
+                                  <td>
+                                      <table bgcolor='#FAFAFA' width='100%' border='0' cellspacing='0' cellpadding='0' style='width:500px;border: none;'>
+                                          <tbody style='font-family: Roboto-Regular,Helvetica,Arial,sans-serif;font-size: 13px;color: #999;line-height: 1.4;'>
+                                              <tr height='20px'>
+                                                  <td width='30px' rowspan='3'></td>
+                                                  <td></td>
+                                                  <td width='30px' rowspan='3'></td>
+                                              </tr>
+                                              <tr>
+                                                  <td>
+                                                      <table style='min-width:300px' border='0' cellspacing='0' cellpadding='0'>
+                                                          <tbody>
+                                                              <div style='margin-top: 5px;'><span>Hi, ".$userProfile['fullname'].".</span></div>
+                                                              <div style='margin-top: 5px;'>
+                                                                <span>Someone used this email address to register your Giccos account.</span><br>
+                                                                <span>Created at ".date('H:i, d/n/Y', $userProfile['time'])." (".date_default_timezone_get().").</span>
+                                                              </div>
+                                                              <div style='margin-top: 5px;'>
+                                                                <span>If this is your account <a href='#' style='color: #555;text-decoration: none;'>active here</a>. And if you don't register account at Giccos, <a href='#' style='color: #555;text-decoration: none;'>report here</a></span></tr>
+                                                              </div>
+                                                              <div style='margin: 15px auto;width: 300px;'>
+                                                                <div style='margin: 15px auto;'>
+                                                                  <div style='display: inline-block;vertical-align: top;height: 40px;width: 40px;background-color: #DDD;border: none;border-radius: 360px;'>
+                                                                    <div style='margin: 15%; width: 70%; height: 70%;background-size: cover;background-position: 50% 50%;border: none;border-radius: 360px;'></div>
+                                                                  </div>
+                                                                  <div style='display: inline-block;vertical-align: top;margin: 3px 0 0 9px;'>
+                                                                    <div><span style='line-height: 1.4;font-size: 14px; font-weight: bold;'>".$userProfile['fullname']."</span></div>
+                                                                    <div><span style='line-height: 1.4;font-size: 12px; font-weight: normal;'>".$userProfile['username']."</span></div>
+                                                                  </div>
+                                                                </div>
+                                                                <div style='margin: 15px auto;'>
+                                                                  <div style='display: inline-block;vertical-align: top;height: 40px;width: 40px;background-color: #DDD;border: none;border-radius: 360px;'>
+                                                                    <div style='margin: 15%; width: 70%; height: 70%;background-size: cover;background-position: 50% 50%;border: none;border-radius: 360px;'></div>
+                                                                  </div>
+                                                                  <div style='display: inline-block;vertical-align: top;margin: 3px 0 0 9px;'>
+                                                                    <div><span style='line-height: 1.4;font-size: 14px; font-weight: bold;'>".$userProfile['client']['platform']."</span></div>
+                                                                    <div><span style='line-height: 1.4;font-size: 12px; font-weight: normal;'>".$userProfile['client']['name']."</span></div>
+                                                                  </div>
+                                                                </div>
+                                                                <div style='margin: 15px auto;'>
+                                                                  <div style='display: inline-block;vertical-align: top;height: 40px;width: 40px;background-color: #DDD;border: none;border-radius: 360px;'>
+                                                                    <div style='margin: 15%; width: 70%; height: 70%;background-size: cover;background-position: 50% 50%;border: none;border-radius: 360px;'></div>
+                                                                  </div>
+                                                                  <div style='display: inline-block;vertical-align: top;margin: 3px 0 0 9px;'>
+                                                                    <div><span style='line-height: 1.4;font-size: 14px; font-weight: bold;'>".$userProfile['ip']['places']."</span></div>
+                                                                    <div><span style='line-height: 1.4;font-size: 12px; font-weight: normal;'>".$userProfile['ip']['location']."</span></div>
+                                                                  </div>
+                                                                </div>
+                                                              </div>
+                                                              <div style='margin-top: 50px;text-align: right;'><span style='text-transform: uppercase;font-size: 11px;font-weight: bold;'>© Giccos, Inc.</span></div>
+                                                          </tbody>
+                                                      </table>
+                                                  </td>
+                                              </tr>
+                                              <tr height='20px'></tr>
+                                          </tbody>
+                                      </table>
+                                  </td>
+                              </tr>
+                          </tbody>
+                      </table>
+                  </td>
+                  <td width='32px'></td>
+              </tr>
+              <tr height='32px'></tr>
+          </tbody>
