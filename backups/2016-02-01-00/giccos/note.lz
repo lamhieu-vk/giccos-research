@@ -1,0 +1,6 @@
+_string.hex.encode(_string.lz.compress('tôi yêu việt nam'))
+81 0b 96 78 40 00 05 9e ae 70 1b 10 0e 99 8c 37 0e 08 86 c0 b2 05 00 00
+
+
+_string.lz.decompress(_string.hex.decode('81 0b 96 78 40 00 05 9e ae 70 1b 10 0e 99 8c 37 0e 08 86 c0 b2 05 00 00'));
+tôi yêu việt nam
