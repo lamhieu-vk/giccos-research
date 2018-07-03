@@ -2,7 +2,7 @@
 
 ## tôi là ai?
 
--
+tên đầy đủ là Lâm Hiếu,... nà ní!
 
 ## giccos-research
 
@@ -16,6 +16,6 @@ lưu ý: đây là quá trình **tự học** và tôi chưa được trãi qua 
 
 bản `backups` này được tôi phục hồi từ ổ đứa cứng và những nơi lưu cũ nên mất mát khá nhiều, khi đặt đưa lên `github` thì phải xóa đi những tệp có kích thước lớn nên không phải là bản nguyên vẹn lúc đầu! tôi sẽ cập nhật đường dẫn để tải những bản `backups` cũ một cách nguyên vẹn nhất sau, có thể là từ `google drive`.
 
-### mục đích của trang này là gì?
+## mục đích của trang này là gì?
 
 tôi tạo ra trang `github` này để lưu trữ những bản `backups` và viết ra quá trình tôi đã tự học và tìm hiểu lập trình như thế nào. kèm theo đó là việc tôi sẽ tạo ra những thư mực chứa câu trả lời về nhưng bài toán tôi đã gặp phải trong quá trình xây dựng bộ mã nguồn này, và kèm theo đố là cách giải quyết ở `quá khứ` lẫn `hiện tại` (nếu có) theo công nghệ mới nhất mà tôi được tiếp cận.
