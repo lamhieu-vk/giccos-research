@@ -1,4 +1,4 @@
-# giới thiêuj
+# giới thiệu
 
 ## tôi là ai?
 
